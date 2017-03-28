@@ -1,0 +1,21 @@
+#!/usr/bin/env julia
+
+length(ARGS) == 0 && exit(1)
+
+using Weave
+
+fname = ARGS[1]
+output = length(ARGS) > 1 ? ARGS[2] : "."
+output = joinpath(pwd(), output)
+makepdf = length(ARGS) > 2 ? ARGS[3] == "pdf" : false
+
+bname, _ = splitext(basename(fname))
+
+weave(fname, doctype="tex", out_path=output, fig_path="img", informat="noweb", plotlib="PLplot")
+
+tname = joinpath(output, bname)
+if isfile(bname*".tex") && makepdf
+    !isdir(output) && run(`mkdir -p $output`)
+    run(`pdflatex -shell-escape -output-directory $output $bname.tex`)
+    isfile("$tname.pdf") && cp("$tname.pdf", basename("$bname.pdf"), remove_destination=true)
+end
