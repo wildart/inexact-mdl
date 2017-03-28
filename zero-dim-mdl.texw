@@ -1,0 +1,362 @@
+\subsection{MDL of a Zero-Dimensional Manifold Cluster}
+\label{ssc:zero-dim-mdl}
+
+<<echo=false;cache=false>>=
+using DataFrames
+using LMCLUS
+using Distributions
+using Clustering
+#using Gadfly
+using PLplot
+PLplot.set_default_device(:pdfcairo)
+
+function generate_lm(N::Int, M::Int, C::Int,
+                    B::Matrix{Float64},
+                    θ::Float64,
+                    D::Symbol = :Uniform;
+                    σs::Vector{Float64} = ones(N),
+                    bounds::Matrix{Float64}= ones(N,2))
+    @assert size(bounds) == (N,2) "Define bounds for every dimension"
+    @assert size(B) == (N,M) "Define bounds for every dimension"
+    S = Separation()
+    S.threshold = θ
+    manifold = Manifold(M, zeros(N), B, collect(1:C), S)
+
+    c = 1
+    X = zeros(N,C)
+    while c <= C
+        if D == :Gaussian
+            for i in 1:N
+                X[i,c] = rand(Normal(0.,σs[i]))
+            end
+        else
+            for i in 1:N
+                R = abs(bounds[i,2]-bounds[i,1])
+                X[i,c] = rand()*R - R/2.
+            end
+        end
+        if distance_to_manifold(X[:,c], B) < θ
+            c += 1
+        end
+    end
+
+    return X, manifold
+end
+
+function manifolds(res::KmeansResult)
+    I = res.assignments
+    C = length(I)
+    l,u = extrema(I)
+    return [Manifold(0, res.centers[:,i],
+                        ones(size(X,1),0),
+                        (1:C)[I.==i],
+                        Separation())
+            for i in l:u]
+end
+
+"""Generate dataframe groups for plotting
+
+    `color` is a pair of a field (Symbol) and a color map (Dict{FieldType,Int})
+    `group` is a field (Symbol)
+
+The color map can be ommitted, in this case color field specified only.
+"""
+function makegroups(df, x, y, group, color = nothing)
+    # get color field and map
+    cfield, cmap =  if isa(color, Pair)
+        (color[1], if isa(color[2], Dict)
+            # convert(Vector{Int}, map(v->color[2][v], unique(df[color[1]])))
+            color[2]
+        else
+            nothing
+        end)
+    else
+        color, nothing
+    end
+
+    groups = Dict([ (g,Any[]) for g in unique(df[group]) ])
+
+    for g in groupby(df, group)
+        gkey = g[group][1]
+        if cfield === nothing
+            push!(groups[gkey], (g[x], g[y], 1))
+        else
+            for cg in groupby(g, cfield)
+                gckey = cg[cfield][1]
+                c = cmap === nothing ? 1 : get(cmap, gckey,  1)
+                push!(groups[gkey], (cg[x], cg[y], c))
+            end
+        end
+    end
+
+    return groups
+end
+
+# Setup
+RND_SEED = 923487298
+Pm = 24      # Model precision encoding constant
+Pd = 16      # Data precision encoding constant
+N = 2        # Space dimension
+M = 1        # Linear manifold dimension
+C = 1000     # Size of a LM cluster
+B = eye(N,M) # Basis vectors
+θ = 0.8      # distance threshold
+σs_1D = [1.0; 0.1]
+mdltype = LMCLUS.MDL.OptimalQuant
+@
+
+An interesting case arises when we try to calculate the MDL of
+a zero-dimensional manifold cluster. Given that a zero-dimensional (ZD)
+manifold is a point, any cluster characterized only by its center point is
+considered as a zero-dimensional manifold or spherical cluster
+\IfClass{IEEEtran}{}{, see Fig.~\ref{fig:zdc}}.
+Many clustering algorithms, e.g. $k$-means, produce zero-dimensional manifold
+clusters \cite{Jain:1999mf}.
+
+\IfClass{IEEEtran}{}{
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="zdc"; fig_cap="Spherical (zero-dimensional linear manifold) cluster in 2D space">>=
+# Generate and plot linear manifold cluster
+srand(RND_SEED)
+σs_1D = [0.3, 0.3]
+X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = σs_1D)
+ticks = collect(floor(minimum(X[1,:])):1.:floor(maximum(X[1,:])))
+
+draw() do opts
+    dmin = floor(minimum(X[1,:]))
+    dmax = floor(maximum(X[1,:]))
+    plot(X[1,:], X[2,:], pch=17, xmin=dmin, xmax=dmax, ymin=dmin, ymax=dmax, col=2)
+    color!(1)
+    PLplot.labels("x", "y", "")
+end
+@
+}
+
+Any zero-dimensional manifold cluster is a special case of the linear manifold
+cluster, thus we can use encoding (\ref{eq:mdl-lmc-final}) to calculate the MDL
+value of the cluster given that dimension of the manifold is zero, $M = 0$.
+Thus, (\ref{eq:mdl-lmc-final}) is simplified as follows
+\begin{equation} \label{eq:mdl-zdm}
+L(\varepsilon) = P_m N + J S(\varepsilon)
+\end{equation}
+
+Georgieva et al. \cite{Georgieva:2011tk} took a similar approach in
+describing the MDL of zero-dimensional clusters, produced by the $k$-means
+algorithm. However, instead of using the entropy of the quantized distribution
+of the point positions in particular dimensions, the projection distances to
+the point were encoded in MDL as follows
+\begin{equation} \label{eq:mdl-zdc}
+L = L(H) + L(D|H) = P N + \sum_{i=1}^{J} \sum_{p=1}^{N} \log (d_i^p + 1)
+\end{equation}
+where $d_i^p$ corresponds to the projection of the distance $d_i$ of
+the $i$-th point to the $p$-th dimension.
+Such a description does not provide an informative encoding of coordinates when
+distances to the center in the cluster are near zero. In such a case, distance
+is encoded with less than one bit on the average.
+
+We will compare the degenerate case of the inexact encoding of zero-dimensional
+manifold cluster calculated by (\ref{eq:mdl-zdm}) on synthetically generated
+linear manifold and spherical clusters. Such an approach will provide a common
+ground for comparison between linear manifold and spherical clusters.
+We also compare the MDL value of a linear manifold clustering with a cumulative
+MDL of a clustering constructed from zero-dimensional clusters which is a more
+natural representation of linearly shaped data from the perspective of spherical
+clustering algorithms.
+
+% Use 1D manifold (as above) for 0D MDL calculation under various quantization errors.
+We used a synthetically generated dataset which has a form of a 1D linear manifold
+cluster, an elongated dataset along the one axis, in 2D full space.
+Cluster generation procedure was described above.
+%described in the section \ref{sc:results}.
+We performed the MDL value calculation for the 1D manifold following MDL formula
+\eqref{eq:mdl-lmc-final} and then the 0D manifold case defined by \eqref{eq:mdl-zdm}
+for various quantization errors.
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="zdc-mdl-exp1"; fig_cap="Linear manifold (1D) and zero-dimensional (0D) MDL calculations for 1D linear manifold and spherical 0D clusters, located in 2D space, with various quantization errors \\textepsilon.">>=
+# Plot results of experiment 1
+srand(RND_SEED)
+
+# Generate 1D LM cluster
+σs_1D = [1.0, 0.1]
+X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = σs_1D)
+
+# MDL of 1D LM cluster
+# epsilons = ["1e-"*string(i) for i in 1:6]
+epsilons = [1/10.^i for i in 1:6]
+df = DataFrame(ɛ=epsilons,
+               Calculation=fill("LMC MDL",length(epsilons)),
+               Cluster=fill("Linear Manifold",length(epsilons)),
+               MDL=[LMCLUS.MDL.calculate(mdltype, LM,
+                    X, Pm, Pd, ɛ=e, tol=10e-20)
+                    for e in epsilons])
+LM.d = 0
+df = vcat(df, DataFrame(ɛ=epsilons,
+               Calculation=fill("LMC MDL",length(epsilons)),
+               Cluster=fill("Spherical",length(epsilons)),
+               MDL=[LMCLUS.MDL.calculate(mdltype, LM,
+                    X, Pm, Pd, ɛ=e, tol=10e-20)
+                    for e in epsilons]))
+LM.d = 1
+
+# Generate 0D cluster
+σs_1D = [0.3, 0.3]
+X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = σs_1D)
+
+# MDL of 0D cluster
+df = vcat(df, DataFrame(ɛ=epsilons,
+               Calculation=fill("0D MDL",length(epsilons)),
+               Cluster=fill("Linear Manifold",length(epsilons)),
+               MDL=[LMCLUS.MDL.calculate(mdltype, LM,
+                    X, Pm, Pd, ɛ=e, tol=10e-20)
+                    for e in epsilons]))
+LM.d = 0
+df = vcat(df, DataFrame(ɛ=epsilons,
+               Calculation=fill("0D MDL",length(epsilons)),
+               Cluster=fill("Spherical",length(epsilons)),
+               MDL=[LMCLUS.MDL.calculate(mdltype, LM,
+                    X, Pm, Pd, ɛ=e, tol=10e-20)
+                    for e in epsilons]))
+
+# Gadfly
+# plot(df, x=:ɛ, xgroup=:Calculation, y=:MDL, color=:Cluster,
+#      Geom.subplot_grid(Geom.line), Scale.y_log2, Scale.x_log10,
+#      Theme(key_position = :top))
+
+cmap = Dict(["Linear Manifold" => 2, "Spherical" => 4])
+grps = makegroups(df, :ɛ, :MDL, :Calculation, :Cluster => cmap)
+draw() do opts
+    PLplot.plssub(length(grps), 1) # number of subplots
+    for (gn, gp) in grps
+        for (i,p) in enumerate(gp)
+            plot(convert(Vector{Float64},p[1]) |> log10, convert(Vector{Float64},p[2]), col=p[3],
+                overlay=(i>1), typ=:line, env=false, boxcol=1, axis_box=PLplot.LogX,
+                xminvp=0.23, xmaxvp=0.96, yminvp=0.13, ymaxvp=0.82, pen=2.5)
+        end
+        color!(1)
+        PLplot.labels("#ge", "MDL", gn)
+    end
+    PLplot.legend(collect(keys(cmap)), text_colors=map(Cint, values(cmap)),
+                pos=Cint(PLplot.POSITION_SUBPAGE | PLplot.POSITION_LEFT | PLplot.POSITION_TOP),
+                opt=Cint(PLplot.LEGEND_BACKGROUND),
+                ncolumn=Cint(2), text_justification=0.1, y_offset=0.01)
+end
+@
+
+Figure~\ref{fig:zdc-mdl-exp1} shows results of linear manifold Eq.~\eqref{eq:mdl-lmc-final}
+and zero-dimensional Eq.~\eqref{eq:mdl-zdm} MDL value calculations for various types
+of manifold clusters. For large quantization errors, both approaches to the MDL
+calculation produce a small MDL value for spherical cluster. However, when
+the precision of the quantization procedure increases, resulting in a more
+complete and informative description of the cluster, the MDL value of the linear
+manifold cluster becomes smaller than the spherical cluster regardless of
+the selected method of calculation.
+% Although, LM-MDL approach provides smaller value of the linear
+% manifold cluster under the larger quantization error, then ZD-MDL approach.
+\IfClass{IEEEtran}{}{\bigskip}
+
+%Use k-means to cluster 1D linear manifold, k>=1, and calculate total MDL of clustering. Compare resulted value to the MDL of 1D LM.
+
+Because of the structural difference between linear manifold and spherical
+clusters, it is hard to come with common criteria for comparison of
+different types of clusters. We use the MDL value as a measure for
+heterogeneous cluster comparison. In order to test how the cluster MDL would
+perform as a comparison score, we calculated MDL values of synthetically
+generated clusters of different types - linear manifold and spherical.
+
+We generated a 1D linear manifold cluster dataset from a bivariate normal
+distribution, as in previous experiments, and used the $k$-means algorithm to
+synthesize spherical clusters from it. We varied the number of clusters for
+the $k$-means algorithm that allowed us to form clusters which gradually
+obtain a spherical shape, as the linear manifold cluster got partitioned
+into more clusters.
+
+We perform an evaluation of the MDL value for the linear manifold clusters by
+Eq.~\eqref{eq:mdl-lmc-final} and spherical cluster by Eq.~\eqref{eq:mdl-zdm}.
+When $k$-means generated more than one cluster from the original dataset,
+we summed all the cluster MDL values in the clustering to obtain
+the MDL score for the original 1D LM cluster represented by the dataset.
+\IfClass{IEEEtran}{This is shown in Figure~\ref{fig:mdl-zdc-exp2}.}{}
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="zdc-mdl-exp2"; fig_cap="MDL value of k-means clusterings (K[k]) produced from the 1D linear manifold cluster (LM), located in 2D space, under various quantization errors \\textepsilon.">>=
+# Plot results of experiment 2
+srand(RND_SEED)
+
+# Generate 1D LM cluster
+σs_1D = [1.0; 0.1]
+epsilons = ["1e-"*string(i) for i in 1:5]
+
+X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = σs_1D)
+
+df = DataFrame()
+for e in epsilons
+    LM.d = 0
+    df = vcat(df, DataFrame(ɛ=e,
+              MDL=LMCLUS.MDL.calculate(mdltype, LM, X, Pm, Pd, ɛ=float(e), tol=1e-20),
+              Clustering="K#d1")) # "K1"
+    for k in 3:3:9
+        kmr = kmeans(X, k)
+        LMs = manifolds(kmr)
+        df = vcat(df, DataFrame(ɛ=e,
+                                MDL=sum([LMCLUS.MDL.calculate(mdltype, LMs[i],
+                                    X, Pm, Pd, ɛ=float(e), tol=10e-20)
+                                    for i in 1:length(kmr.counts)]),
+                                Clustering="K#d$k")) #"K$k"
+    end
+    LM.d = 1
+    df = vcat(df, DataFrame(ɛ=e,
+                            MDL=LMCLUS.MDL.calculate(mdltype, LM,
+                                X, Pm, Pd, ɛ=float(e), tol=10e-20),
+                            Clustering="LM"))
+end
+
+# Gadfly
+# plot(df, x=:Clustering, y=:MDL, xgroup=:ɛ, Geom.subplot_grid(Geom.line), Scale.y_log2)
+
+grps = makegroups(df, :Clustering, :MDL, :ɛ)
+draw(width=800) do opts
+    PLplot.plssub(length(grps), 1) # number of subplots
+    ymin, ymax = hcat(map(a->first(a)[2], values(grps))...) |> extrema
+    lbls = first(values(grps))[1][1]
+    for (gi, gk) in enumerate(sort!(collect(keys(grps))))
+        gp = grps[gk]
+        ylen = 1
+        for (i,p) in enumerate(gp)
+            y = convert(Vector{Float64},p[2])
+            ylen = length(y)
+            plot(collect(1.:1.:ylen), log10(y), col=2,
+                # ymin = floor(ymin,-3), ymax = ceil(ymax,-3),
+                ymin = floor(log10(ymin)), ymax = ceil(log10(ymax)),
+                xmin = 0., xmax = ylen+1.,
+                xspec="bct", yspec = (gi==1) ? "bcnvlst" : "bcvlst",
+                xmajorint = 1.,
+                overlay=(i>1), typ=:line, env=false, boxcol=1,
+                xminvp = (gi==1) ? 0.3 : 0.1, xmaxvp=0.9, yminvp=0.13, ymaxvp=0.92, pen=2.5)
+        end
+        color!(1)
+        gi == 1 && PLplot.plmtex("l", 1.5, 0.5, 0.5, "log#d10#u(MDL)")
+        PLplot.plmtex("t", 1.0, 0.5, 0.5, "#ge = 10#u-$gi")
+        for (i,l) in enumerate(lbls)
+            PLplot.plmtex("b", 1.0, i/(ylen+1.), 0.5, l)
+        end
+    end
+end
+@
+
+\IfClass{IEEEtran}{}{
+Figure \ref{fig:mdl-zdc-exp2} shows results of MDL calculations for clusterings
+produced from the 1D linear manifold cluster.} We found that the division of
+the linear manifold on multiple spherical clusters does not provide much
+difference in the resulted MDL value. As in the previous experiment, the major
+factor which affects MDL calculations is the quantization error parameter.
+For a small quantization error, spherical clusters provide a smaller MDL value
+for the experimental dataset. Moreover, the MDL value of the whole dataset does not
+increase significantly with the number of clusters in the $k$-means clustering.
+However, as the quantization error decreases, the MDL value calculated by
+Eq.~\eqref{eq:mdl-lmc-final} becomes significantly smaller then the spherical
+cluster MDL value Eq.~\eqref{eq:mdl-zdm}.
+
+This result suggests that for a large quantization error a spherical description
+of the linear manifold cluster provides more compact MDL value over
+the linear manifold MDL model. But while the quantization error decreases,
+giving a better description of the data, the linear manifold MDL model produces
+more compact encoding of the linear manifold cluster and outperforms the spherical
+MDL model regardless of cluster proximity to true spherical representation.
