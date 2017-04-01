@@ -1,0 +1,23 @@
+\section{Conclusion}
+\label{sc:conclusion}
+
+We described a novel regularization technique for the linear manifold clustering
+based on the idea that a linear manifold shaped cluster allows efficient compression
+of the cluster data to the degree allowed by the specified error threshold.
+This intuitive criterion was formalized as the minimization problem of
+the description length of a prospective cluster and incorporated into
+the stochastic search of the clustering algorithm.
+
+In the empirical part of the work we studied the behavior of the proposed MDL
+encoding, and the effect of the quantization error on it. We confirmed that
+the described method produced reasonable results for simulated datasets, as
+well as on the climate data clustering task. We believe that this regularization
+technique allows creation of clusters that are more informative and
+comprehensive.
+
+A comprehensive scoring of the clusters with MDL values provides not only a
+criteria for cluster goodness-of-fit evaluation, but as well can be viewed as
+a qualitative measure which is used to explore stability of the clustering
+algorithm \cite{VonLuxburg:2005VB}, or to improve clustering performance by
+introducing a scoring function for a guided stochastic search, which is left to
+be explored in our future research.

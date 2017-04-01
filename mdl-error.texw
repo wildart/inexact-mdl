@@ -1,47 +1,27 @@
-\documentclass[12pt]{article}
+\subsection{MDL Precision Error}
+\label{ssc:mdl-error}
 
-\usepackage[utf8]{inputenc}
-\usepackage{amsfonts}
-\usepackage{graphicx}
-\usepackage{textgreek}
-\usepackage{fancyvrb}
-\usepackage{geometry}
-\usepackage{longtable}
-\usepackage{float}
-
-\DefineVerbatimEnvironment{juliaout}{Verbatim}{}
-\DefineVerbatimEnvironment{juliacode}{Verbatim}{fontshape=sl}
-\DefineVerbatimEnvironment{juliaterm}{Verbatim}{}
-
-\renewcommand{\arraystretch}{1.5}
-
-\title{\Large \bf Linear manifold MDL precision error}
-\author{Art Diky}
-
-\begin{document}
-\maketitle
-
-In our experiments with linear manifold clusters, we use following definition of
-the minimum description length,
-\begin{equation} \label{eq:mdl-lmc-final}
-L(\varepsilon)
-    % = P_m [N + M(N - (M+1))/2 ]+ n(P_d\cdot M  + S(\varepsilon))
-    = P \sum^K_{k=1} \left[ N \cdot (N+3)/2 + 2 \sum^N_{m=M_k} Q_{mk}(\varepsilon) \right]
-\end{equation}
-where
-\begin{itemize}
-\item $N$ is the dimension of the space,
-\item $M$ is the dimension of the manifold,
-\item $n$ is a number of points in the linear manifold cluster,
-\item $P_m$ is the number of bits used for encoding each component of
-the manifold translation and the numbers required to calculate the basis vectors,
-\item $P_d$ is the number of bits used for encoding $M$ components of
-cluster point, projected on the linear manifold,
-\item $S(\varepsilon)$ is an entropy of a distribution of cluster points,
-in the orthogonal compliment subspace to the linear manifold of the cluster,
-calculated to be correct within an error bound of  $\varepsilon$,
-\item $\varepsilon$ is the specified quantization error.
-\end{itemize}
+% In our experiments with linear manifold clusters, we use following definition of
+% the minimum description length,
+% \begin{equation} \label{eq:mdl-lmc-final}
+% L(\varepsilon)
+%     % = P_m [N + M(N - (M+1))/2 ]+ n(P_d\cdot M  + S(\varepsilon))
+%     = P \sum^K_{k=1} \left[ N \cdot (N+3)/2 + 2 \sum^N_{m=M_k} Q_{mk}(\varepsilon) \right]
+% \end{equation}
+% where
+% \begin{itemize}
+% \item $N$ is the dimension of the space,
+% \item $M$ is the dimension of the manifold,
+% \item $n$ is a number of points in the linear manifold cluster,
+% \item $P_m$ is the number of bits used for encoding each component of
+% the manifold translation and the numbers required to calculate the basis vectors,
+% \item $P_d$ is the number of bits used for encoding $M$ components of
+% cluster point, projected on the linear manifold,
+% \item $S(\varepsilon)$ is an entropy of a distribution of cluster points,
+% in the orthogonal compliment subspace to the linear manifold of the cluster,
+% calculated to be correct within an error bound of  $\varepsilon$,
+% \item $\varepsilon$ is the specified quantization error.
+% \end{itemize}
 
 We are going to investigate the precision of the MDL calculations, in particular,
 how changes in the encoding of the model and data affects resulting MDL value.
@@ -49,7 +29,6 @@ how changes in the encoding of the model and data affects resulting MDL value.
 % Setup
 <<echo=false;cache=false>>=
 using PLplot
-using JLD
 joinpath(pwd(), "src/clust-utils.jl") |> include
 
 #resultsfile = joinpath(pwd(),"data/MDL-1951-1980-360x180-lmclus-mdl-on.nc")
@@ -79,16 +58,16 @@ B =  projection(MC)
 Xt = Xn .- μ
 @
 
-For our experiments we used results of the climate clustering dataset.
-Climate dataset is the 24D dataset composed of temperature and precipitation
-monthly averages for the period form 1951-1980.
-We used cluster 2, see Fig.~\ref{fig:cl-lmclus-c2}, which is a one
-dimensional cluster.
+For our experiments we used results of the climate clustering dataset,
+see Section \ref{ssc:climate}. The climate dataset is the 24D dataset composed
+of temperature and precipitation monthly averages for the period form 1951-1980.
+We used cluster number 2, see Fig.~\ref{fig:cl-lmclus-c2}, which is a one
+dimensional cluster, from the above clustering results.
 
-\begin{figure}[ht]
+\begin{figure}[H]
 \centering
-\includegraphics[width=3in]{img/CL02.png}
-\caption{Cluster 2 from LMCLUS clustering of the climate dataset.}
+\includegraphics[width=3.5in]{img/CL02.png}
+\caption{Cluster \#2 from LMCLUS clustering of the climate dataset.}
 \label{fig:cl-lmclus-c2}
 \end{figure}
 
@@ -125,7 +104,7 @@ end
 @
 
 <<term=true;cache=false>>=
-
+#
 # Encoding of the data from Float32 to Float16
 prec_error(B,Xt,Float32,Float16)
 
@@ -183,62 +162,22 @@ function quanterror(X, bins, dim)
     return sqerr
 end
 
-for ɛ in [1e-2, 1e-3, 1e-4]
-    bins, sqerr, C = LMCLUS.MDL.optquant(intervals, ɛ, tol=1e-12)
+for ɛ in [1e-2, 1e-3, 1e-4, 1e-5]
+    bins, sqerr, C = LMCLUS.MDL.optquant(intervals, ɛ, tol=1e-20)
     dimerrors = [quanterror(Y, bins, i) for i in 1:N-M]
     @printf("%.3e & %.3e & %.3e \\\\\n", ɛ^2, sqerr, mean(dimerrors))
 end
 @
 \end{tabular}
-\caption{Quantization error}
+\caption{Average expected, $E$, and actual, $E_q$, quantization errors for
+particular user-defined quantization error upper boundary $\varepsilon$.}
 \label{tbl:quant-error}
 \end{table}
 
-<<echo=false; fig_pos="ht"; out_width="3.5in"; fig_lab="cl-mdl"; fig_cap="MDL vs number of clusters">>=
-function clmdl(clusts, Pm, ɛ)
-    CLS = Int[]
-    MDL = Int[]
-    for k in keys(clusts)
-        Ms = clusts[k]
-        #print("BB: $k => CLS: $(length(Ms))")
-        mdl = 0
-        for M in Ms
-            L = labels(M)
-            if indim(M) == size(X,1)
-                M.μ = mean(X[:,L],2)[:]
-                M.d = 0
-            end
-            mdl += LMCLUS.MDL.calculate(LMCLUS.MDL.SizeIndependent, M, X[:,L], Pm, 64, ɛ = ɛ, tol=1e-12)
-        end
-        push!(CLS, length(Ms))
-        push!(MDL, mdl)
-        #println(" => MDL: $mdl")
-    end
-    return CLS, MDL
-end
-
-X = load(joinpath(pwd(),"data/cl-data.jld"), "data")
-res = load(joinpath(pwd(),"data/cl-clusts.jld"))
-clusts = res["clusts"]
-
-Pm = 64
-ɛ = [0.02, 0.01, 0.007, 0.005, 0.001]
-xs = zeros(length(keys(clusts)),0)
-ys = similar(xs)
-for e in ɛ
-    # println("ɛ: $e")
-    r = clmdl(clusts, Pm, e)
-    xs = convert(Vector{Float64}, r[1])
-    ys = hcat(ys, convert(Vector{Float64}, r[2]))
-end
-
-draw(:pdfcairo) do opts
-    # plot(xs, ys, pch=['⋄','⊕','▴','⚬','*'])
-    idx = sortperm(xs)
-    plot(xs[idx], ys[idx,1:end-1], typ=:line)
-    color!(1)
-    PLplot.labels("# Clusters", "MDL (bits)", "")
-end
-@
-
-\end{document}
+Comparison results, see Table~\ref{tbl:quant-error} show that squared expected
+quantization error \eqref{eq:sq-quant-error}, $E^2$, is under the user-defined
+error upper boundary, $\varepsilon^2$. However, the actual squared quantization
+error, $E_q$, resulted from quantizing the cluster points under calculated
+quantization parameters \eqref{eq:quant-intervals}, is much larger then
+expected one for a loose error boundary. But this error approaching to
+its expected value as quantization error boundary tightens.

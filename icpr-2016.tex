@@ -1,0 +1,54 @@
+\documentclass[10pt,conference,a4paper]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{textgreek}
+\usepackage{fancyvrb}
+\usepackage{subfigure}
+\usepackage{cite}
+\usepackage{url}
+\usepackage[dvipsnames]{xcolor}
+
+\makeatletter
+\def\IfClass#1#2#3{\@ifundefined{opt@#1.cls}{#3}{#2}}
+\newif \ifIEEEtran \@ifclassloaded{IEEEtran} {\IEEEtrantrue} {\IEEEtranfalse}
+\makeatother
+
+\title{Inexact MDL for Linear Manifold Clusters}
+\author{
+    \IEEEauthorblockN{Robert M. Haralick\IEEEauthorrefmark{1},
+    Art Diky\IEEEauthorrefmark{2}, Xing Su\IEEEauthorrefmark{3}
+    }
+    \IEEEauthorblockA{Department of Computer Science\\
+    The Graduate Center, CUNY\\
+    365 Fifth Avenue, New York, NY 10016\\
+    Email: \IEEEauthorrefmark{1}RHaralick@gradcenter.cuny.edu\\
+        \IEEEauthorrefmark{2}adiky@gradcenter.cuny.edu\\
+        \IEEEauthorrefmark{3}xsu@gradcenter.cuny.edu\\
+    }
+    \and
+    \IEEEauthorblockN{Nancy Y. Kiang}
+    \IEEEauthorblockA{NASA Goddard Institute for Space Studies\\
+    2880 Broadway, New York, NY 10025\\
+    Email: Nancy.Y.Kiang@nasa.gov}
+}
+
+\begin{document}
+\maketitle
+\input{abstract}     % Abstract
+\input{intro}        % Introduction
+\input{lit-review}   % Literature Review
+\input{lmclus}       % Linear Manifold Clustering
+\input{mdl-lmclus}   % MDL Linear Manifold Cluster
+\input{results}      % Results
+\input{zero-dim-mdl} % MDL of zero-dimensional manifold
+\input{climate}      % Results of climate clustering
+\input{conclusion}
+
+% Bibliography
+\bibliographystyle{IEEEtran}
+\bibliography{inexact_mdl_lmc}
+
+\end{document}

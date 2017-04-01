@@ -1,0 +1,68 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{textgreek}
+\usepackage{fancyvrb}
+\usepackage[toc,page]{appendix}
+\usepackage{subfigure}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{xcolor}
+
+\setlength\LTleft{0in}
+\setlength\LTright{0in}
+% \setcounter{LTchunksize}{10}
+
+\makeatletter
+\def\IfClass#1#2#3{\@ifundefined{opt@#1.cls}{#3}{#2}}
+\newif \ifIEEEtran \@ifclassloaded{IEEEtran} {\IEEEtrantrue} {\IEEEtranfalse}
+\makeatother
+
+\DefineVerbatimEnvironment{juliaout}{Verbatim}{}
+\DefineVerbatimEnvironment{juliacode}{Verbatim}{fontshape=sl}
+\DefineVerbatimEnvironment{juliaterm}{Verbatim}{}
+
+\title{\Large \bf Inexact MDL for Linear Manifold Clusters}
+\author{Robert M. Haralick, Art Diky, Xing Su, Nancy Y. Kiang}
+
+\begin{document}
+\maketitle
+\input{abstract}     % Abstract
+\tableofcontents
+\input{intro}        % Introduction
+\input{lit-review}   % Literature Review
+\input{lmclus}       % Linear Manifold Clustering
+\input{mdl-lmclus}   % MDL Linear Manifold Cluster
+\input{results}      % Results
+\input{zero-dim-mdl} % MDL of zero-dimensional manifold
+\ifIEEEtran
+\else
+\input{mdl-error}
+\input{mdl-clust}
+\fi
+\input{climate}      % Results of climate clustering
+\input{conclusion}
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{inexact_mdl_lmc}
+
+\newpage
+% Appendix
+\begin{appendices}
+\renewcommand{\thesubsection}{\Alph{subsection}}
+\input{lmclus-results} % Understanding the Results of LMCLUS
+\newpage
+\input{lmclus-params}  % LMCLUS parameters
+\newpage
+\input{cluster-plots}  % Plot cluster
+\end{appendices}
+
+\end{document}
