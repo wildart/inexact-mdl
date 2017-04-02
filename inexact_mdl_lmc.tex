@@ -1,3 +1,9 @@
+\def\ReadCommandLineArg#1 {%
+  \def\CommandLineArg{#1}%
+  \input{\jobname}}
+\unless\ifdefined\CommandLineArg
+\endinput\expandafter\expandafter\expandafter\ReadCommandLineArg\fi
+
 \documentclass[12pt]{article}
 
 \usepackage[utf8]{inputenc}
@@ -42,12 +48,12 @@
 \input{mdl-lmclus}   % MDL Linear Manifold Cluster
 \input{results}      % Results
 \input{zero-dim-mdl} % MDL of zero-dimensional manifold
+\input{climate}      % Results of climate clustering
 \ifIEEEtran
 \else
 \input{mdl-error}
 \input{mdl-clust}
 \fi
-\input{climate}      % Results of climate clustering
 \input{conclusion}
 
 % Bibliography
@@ -61,8 +67,10 @@
 \input{lmclus-results} % Understanding the Results of LMCLUS
 \newpage
 \input{lmclus-params}  % LMCLUS parameters
-\newpage
-\input{cluster-plots}  % Plot cluster
+% \if\CommandLineArg1
+% \newpage
+% \input{cluster-plots}  % Plot cluster points scattergrams
+% \fi
 \end{appendices}
 
 \end{document}

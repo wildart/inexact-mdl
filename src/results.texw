@@ -1,0 +1,426 @@
+\section{Results} \label{sc:results}
+
+We perform series of experiments to test the MDL description for the linear
+manifold (LM) cluster described in section~\ref{sc:mdl-lmclus}.
+Our first experiments are parametric experiments to illustrate the effect of
+the number of precision bits carried and to understand the effect of
+the error bound. The second experiment illustrates the results of the MDL linear
+manifold clustering operating on different data sets.
+
+<<echo=false;cache=false>>=
+using DataFrames
+using LMCLUS
+using Distributions
+using Gadfly
+using Clustering
+
+function generate_lm(N::Int, M::Int, C::Int,
+                    B::Matrix{Float64},
+                    θ::Float64,
+                    D::Symbol = :Uniform;
+                    σs::Vector{Float64} = ones(N),
+                    bounds::Matrix{Float64}= ones(N,2))
+    @assert size(bounds) == (N,2) "Define bounds for every dimension"
+    @assert size(B) == (N,M) "Define bounds for every dimension"
+    S = Separation()
+    S.threshold = θ
+    manifold = Manifold(M, zeros(N), B, collect(1:C), S)
+
+    c = 1
+    X = zeros(N,C)
+    while c <= C
+        if D == :Gaussian
+            for i in 1:N
+                X[i,c] = rand(Normal(0.,σs[i]))
+            end
+        else
+            for i in 1:N
+                R = abs(bounds[i,2]-bounds[i,1])
+                X[i,c] = rand()*R - R/2.
+            end
+        end
+        if distance_to_manifold(X[:,c], B) < θ
+            c += 1
+        end
+    end
+
+    return X, manifold
+end
+
+# Experiment 1:
+# Calculate MDL value for default values of the model and data encoding constants
+# on a range of the quantization error values for a 1D linear manifold cluster in
+# 2D space.
+function experiment1(runs, sigmas, epsilons, Pms, Pds)
+    cols = Symbol[[symbol(e) for e in epsilons]; :Raw; :EC]
+    results = DataFrame([fill(Int,length(epsilons)+1); Tuple{Int,Int}], cols, 0)
+
+    srand(RND_SEED)
+    for i in 1:runs
+        X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = sigmas)
+
+        # MDL of linear manifold cluster
+        for Pm in Pms
+            for Pd in Pds
+                ce = Any[LMCLUS.mdl(LM, X, Pm=Pm, Pd=Pd, ɛ=float(string(e)), tol=1e-20)
+                      for e in cols[1:end-2]]
+                push!(ce, LMCLUS.raw(LM, Pm))
+                push!(ce, (Pm,Pd))
+                push!(results, ce)
+            end
+        end
+    end
+
+    results
+end
+
+# Experiment 2:
+# Calculate MDL value for different spaces dimensions.
+function experiment2(runs, sigmas, dims, Pms, Pds)
+    cols = Symbol[[symbol(e) for e in dims]; :EC]
+    results = DataFrame([fill(Int,length(dims)); Tuple{Int,Int}], cols, 0)
+
+    srand(RND_SEED)
+    for i in 1:runs
+
+        # MDL of linear manifold cluster
+        for Pm in Pms
+            for Pd in Pds
+                ce = Any[]
+                for d in dims
+                    B = eye(d,M)
+                    tmp_σs = vcat(σs_1D, fill(σs_1D[end],d-1))
+                    X, LM = generate_lm(d, M, C, B, θ, :Gaussian; σs = tmp_σs)
+                    push!(ce, LMCLUS.mdl(LM, X, Pm=Pm, Pd=Pd, ɛ=0.01, tol=1e-8))
+                end
+                push!(ce, (Pm,Pd))
+                push!(results, ce)
+            end
+        end
+    end
+
+    results
+end
+
+function experiment3(runs, sigmas, Pms, Pds)
+    results = DataFrame([Int; Tuple{Int,Int}], [:MDL, :EC], 0)
+
+    srand(RND_SEED)
+    for i in 1:runs
+
+        # MDL of linear manifold cluster
+        for Pm in Pms
+            for Pd in Pds
+                X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = sigmas)
+                ce = LMCLUS.mdl(LM, X, Pm=Pm, Pd=Pd, ɛ=0.01, tol=1e-8)
+                push!(results, [ce; (Pm,Pd)])
+            end
+        end
+    end
+
+    results
+end
+
+function experiment4(runs, sigmas, dims, Pms, Pds)
+    cols = Symbol[[symbol("$(e)D") for e in dims]; :EC]
+    results = DataFrame([fill(Int,length(dims)); Tuple{Int,Int}], cols, 0)
+
+    D = length(dims)+1
+
+    srand(RND_SEED)
+    for i in 1:runs
+        for Pm in Pms
+            for Pd in Pds
+                ce = Any[]
+                for d in dims
+                    B = eye(D,d)
+                    tmp_σs = [fill(sigmas[1],d); fill(sigmas[2],D-d)]
+                    X, LM = generate_lm(D, d, C, B, θ, :Gaussian; σs = tmp_σs)
+                    push!(ce, LMCLUS.mdl(LM, X, Pm=Pm, Pd=Pd, ɛ=0.01, tol=1e-8))
+                end
+                push!(ce, (Pm,Pd))
+                push!(results, ce)
+            end
+        end
+    end
+
+    results
+end
+
+
+function experiment5(runs, sigmas, M, epsilons, Pmc, Pdc)
+    results = DataFrame([Int, AbstractString, Int], [:MDL, :ε, :dim], 0)
+
+    D = length(sigmas)
+    B = eye(D,M)
+
+    srand(RND_SEED)
+    for i in 1:runs
+        X, LM = generate_lm(D, M, C, B, θ, :Gaussian; σs = sigmas)
+        for e in epsilons
+            for d in 1:(D-1)
+                LM.d = d
+                push!(results, [LMCLUS.mdl(LM, X, Pm=Pmc, Pd=Pdc, ɛ=float(string(e)), tol=1e-14);
+                                string(e); d])
+            end
+        end
+    end
+
+    results
+end
+
+RND_SEED = 923487298
+Pm = 24      # Model precision encoding constant
+Pd = 16      # Data precision encoding constant
+N = 2        # Space dimension
+M = 1        # Linear manifold dimension
+C = 1000     # Size of a LM cluster
+B = eye(N,M) # Basis vectors
+θ = 0.8      # distance threshold
+samples = 100
+σs_1D = [1.0, 0.1]
+@
+
+First, we looked at how the quantization error $\varepsilon$ affects resulting
+value of the MDL LM cluster description. We generated a 1D linear
+manifold cluster, composed of 1000 points, in 2D Euclidean space where
+points' coordinates where drawn from zero-mean normal distribution, independent
+for every coordinate dimension.
+In order to archive cluster shape compatible with 1D linear manifold, we used
+different variances for each coordinate dimension. For $x$ coordinate,
+the variance of the normal distribution is $\sigma_x = 1$ and for $y$ coordinate
+$\sigma_y = 0.1$. Such cluster generation procedure creates a linear manifold
+cluster, see Fig.~\ref{fig:lmc}, which is bounded in $x \in [-3;3]$ and
+$y \in [-0.33;0.33]$.
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="lmc"; fig_cap="1D linear manifold cluster in 2D space">>=
+# Generate and plot linear manifold cluster
+srand(RND_SEED)
+σs_1D = [1.0, 0.1]
+X, LM = generate_lm(N, M, C, B, θ, :Gaussian; σs = σs_1D)
+ticks = collect(floor(minimum(X[1,:])):1.:floor(maximum(X[1,:])))
+plot(x=vec(X[1,:]), y=vec(X[2,:]), Geom.point,
+    Guide.xticks(ticks=ticks), Guide.yticks(ticks=ticks),
+    Theme(default_point_size=0.6mm, panel_fill=colorant"white"))
+@
+
+For each quantization error $\varepsilon$, in range of values from $10^{-1}$ to $10^{-8}$,
+we generate 100 times new LM clusters following above generation procedure and
+calculate an average cluster MDL value and its 95\% confidence interval,
+see Fig.~\ref{fig:mdl-exp1}. It is important to mention, there are two more
+parameters involved in calculation of the cluster MDL value - model and data
+encoding precision constants. These constants were set to 24 and 16 bits accordingly.
+
+% % Compose plots with subfigures (remove all figures fig:mdl-exp[1-2])
+% \begin{figure}[ht]
+% \hspace*{-50pt}
+% \subfigure[]{
+%     \includegraphics[width=3.5in]{img/results_mdl-exp1_1.pdf}
+%    \label{fig:mdl-exp1}}
+% \subfigure[]{
+%     \includegraphics[width=3.5in]{img/results_mdl-exp2_1.pdf}
+%     \label{fig:mdl-exp2}}
+% \caption{
+%     \subref{fig:mdl-exp1} MDL value of 1D LM cluster, in 2D space, calculated with quantization error \textepsilon; ``Raw'' value corresponds to the encoding without a model.
+%     \subref{fig:mdl-exp2} MDL value of 1D LM cluster generated in a space of dimension from 2 to 10.
+% }
+% \end{figure}
+
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="mdl-exp1"; fig_cap="MDL value of 1D LM cluster, in 2D space, calculated with quantization error \\textepsilon.">>=
+# Plot results of experiment 1
+σs_1D = [1.0, 0.1]
+epsilons = ["1e-"*string(i) for i in 1:8]
+r_ec_1d = by(experiment1(samples, σs_1D, epsilons, [24], [16]), :EC) do df
+    vcat([DataFrame(MDL=mean(df[e]),
+                    min=mean(df[e])-1.984*std(df[e])/sqrt(samples),
+                    max=mean(df[e])+1.984*std(df[e])/sqrt(samples),
+                    ε = e, LM = symbol("1D"))
+                    for e in Symbol[[symbol(e) for e in epsilons]; :Raw]]...)
+    end
+plot(r_ec_1d, x=:ε, y=:MDL, ymin=:min, ymax=:max, color=:EC,
+    Geom.line, Geom.ribbon, Scale.y_log2, Scale.color_none)
+@
+
+As expected, while the quantization error decreased, there was a more
+precise encoding of point distribution in the orthogonal complement space of the
+cluster manifold and  the corresponding MDL value of the LM cluster increased
+up to the maximum possible value of uncompressed raw encoding.
+\bigskip
+%
+Next, we investigated dependency of the MDL value on the LM cluster dimension. We
+calculated MDL values of a 1D linear manifold cluster in full space of dimension
+from 2 to 10. In order to generate 1D LM cluster for high dimensional spaces,
+we used same methodology as with a 2D space, first coordinate was generated from
+normal distribution with variance 1.0, the rest of the coordinates were drawn
+from normal distribution with variance 0.1. We used same encoding constants as
+in previous experiment, and the value of quantization error was set to 0.01.
+
+As we expected, the MDL value of the 1D LM cluster would increase with number of
+space dimensions. This is shown in Fig.~\ref{fig:mdl-exp2}.
+\bigskip
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="mdl-exp2"; fig_cap="MDL value of 1D LM cluster generated in a space of dimension from 2 to 10.">>=
+# Plot results of experiment 2
+σs_1D = [1.0, 0.1]
+dims = collect(2:10)
+r_ec_1df = by(experiment2(samples, σs_1D, dims, [24], [16]), :EC) do df
+    vcat([DataFrame(MDL=mean(df[e]),
+                    min=mean(df[e])-1.984*std(df[e])/sqrt(samples),
+                    max=mean(df[e])+1.984*std(df[e])/sqrt(samples),
+                    dim = e)
+                    for e in Symbol[symbol(e) for e in dims]]...)
+    end
+plot(r_ec_1df, x=:dim, y=:MDL, ymin=:min, ymax=:max, color=:EC,
+    Geom.line, Geom.ribbon, Scale.y_log2, Scale.color_none)
+@
+
+Also, we investigated the dependency of the MDL value of LM cluster as
+the encoding precision constants changes. In above experiments, we use values of
+24 and 16 for the model and data encoding precision constants. We varied these
+pair of constant for calculation of MDL value for a 1D LM cluster in 2D space.
+%
+Fig.~\ref{fig:mdl-exp3} shows that the model encoding constant does not contribute
+much to overall value of the cluster MDL. For 1D linear manifolds in 2D and 3D
+space, the main factor which affects the resulting MDL value is the data encoding
+precision constants.
+\bigskip
+
+% % Compose plots with subfigures (remove all figures fig:mdl-exp[3-4])
+% \begin{figure}[ht]
+% \hspace*{-50pt}
+% \subfigure[]{
+%     \includegraphics[width=3.5in]{img/results_mdl-exp3_1.pdf}
+%     \label{fig:mdl-exp3}}
+% \subfigure[]{
+%     \includegraphics[width=3.5in]{img/results_mdl-exp4_1.pdf}
+%     \label{fig:mdl-exp4}}
+% \caption{
+%     \subref{fig:mdl-exp3} MDL value of 1D LM cluster in 2D space w.r.t. encoding constants (\emph{EConst} axis shows values of encoding constants as \emph{m[I]d[J]} where $I$ is model constant value and $J$ is data constant value).
+%     \subref{fig:mdl-exp4} MDL values of LM clusters with dimensions from 1 to 9 in 10D space.
+% }
+% \end{figure}
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="mdl-exp3"; fig_cap="MDL value of 1D LM cluster in 2D space w.r.t. encoding constants (\\emph{EConst} axis shows values of encoding constants as \\emph{m[I]d[J]} where \$I\$ is model constant value and \$J\$ is data constant value).">>=
+# Plot results of experiment 3
+σs_1D = [1.0, 0.1]
+r_ec_1dc = by(experiment3(samples, σs_1D, [16,24,32], [16,24,32]), :EC) do df
+        DataFrame(MDL=mean(df[:MDL]),
+                    min=mean(df[:MDL])-1.984*std(df[:MDL])/sqrt(samples),
+                    max=mean(df[:MDL])+1.984*std(df[:MDL])/sqrt(samples))
+    end
+r_ec_1dc2 = hcat(r_ec_1dc, DataFrame(SDim=fill("2D", size(r_ec_1dc,1)),
+                                     EConst=map(e->"m$(e[1])d$(e[2])", r_ec_1dc[:EC])))
+# plot(r_ec_1dc2, x=:EConst, y=:MDL, Geom.point, Scale.y_log2, Scale.color_none, Scale.x_discrete)
+
+N = 3        # Space dimension
+M = 1        # Linear manifold dimension
+B = eye(N,M) # Basis vectors
+σs_1D = [1.0, 0.1, 0.1]
+r_ec_2dc = by(experiment3(samples, σs_1D, [16,24,32], [16,24,32]), :EC) do df
+        DataFrame(MDL=mean(df[:MDL]),
+                    min=mean(df[:MDL])-1.984*std(df[:MDL])/sqrt(samples),
+                    max=mean(df[:MDL])+1.984*std(df[:MDL])/sqrt(samples))
+    end
+r_ec_2dc2 = hcat(r_ec_2dc, DataFrame(SDim=fill("3D", size(r_ec_2dc,1)),
+                                     EConst=map(e->"m$(e[1])d$(e[2])", r_ec_2dc[:EC])))
+
+plot(vcat(r_ec_1dc2, r_ec_2dc2), x=:EConst, y=:MDL, color=:SDim, Geom.point, Scale.y_log2, Scale.x_discrete)
+@
+
+% LM type: Compare 1D and 2D LM cluster in 3D
+The following experiment allows us to determine how the dimensionality of
+the LM cluster affects the calculation of its MDL value. We create multiple linear
+manifolds with increasing dimension in a 10 dimensional space. LM cluster generation
+is done in a standard way: generate coordinate values of the cluster points
+from a normal distribution. For a primary dimension of the LM cluster,
+the variance is 1.0, and for dimensions in the orthogonal complement to
+the linear manifold, the variance is set to 0.1. The encoding constants,
+model and data, are 24 and 16. The quantization error bound is set to 0.01.
+
+Fig.~\ref{fig:mdl-exp4} shows expected linear growth of the MDL value with
+the manifold dimensionality which is reflected in first term of (\ref{eq:mdl-lmc-data}).
+More coordinates are encoded with constant factor $P_d$ which is overpowering
+entropy term of coordinates in the orthogonal complement space of the LM cluster.
+\bigskip
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="mdl-exp4"; fig_cap="MDL values of LM clusters with dimensions from 1 to 9 in 10D space.">>=
+# Plot results of experiment 4
+σs_1D = [1.0, 0.1]
+dims = collect(1:9)
+r_ec_10d = by(experiment4(samples, σs_1D, dims, [24], [16]), :EC) do df
+        vcat([DataFrame(MDL=mean(df[e]),
+                    min=mean(df[e])-1.984*std(df[e])/sqrt(samples),
+                    max=mean(df[e])+1.984*std(df[e])/sqrt(samples),
+                    dim = e)
+                    for e in Symbol[symbol("$(e)D") for e in dims]]...)
+    end
+plot(r_ec_10d, x=:dim, y=:MDL, ymin=:min, ymax=:max, color=:EC,
+    Geom.line, Geom.ribbon, Scale.y_log2, Scale.color_none)
+@
+
+% Take a J-dimensional manifold cluster and calculate MDL as if cluster dim != J
+Finally, we would like to understand how well MDL evaluates goodness of
+a linear manifold cluster. Suppose, we have a 2D linear manifold cluster in
+3D space. How can we guarantee that the particular cluster is actually
+a 2D cluster? What if this cluster is 1D linear manifold cluster with
+wide bounds? What will be the criteria which would provide a distinctive answer
+on correctness of a structure description of the linear manifold cluster.
+We claim that MDL value of linear manifold cluster, calculated with correct
+assumptions of the linear manifold cluster structure would yield minimal value.
+
+In order to test above assumption, we generated a 5D linear manifold cluster in
+a 10D space, following a similar cluster generation schema as in above experiments.
+We generated coordinate values of the cluster points from a normal distribution,
+where for a primary dimension of the LM cluster, the variance is set 1.0, and
+for dimensions in the orthogonal complement to the linear manifold, the variance
+is set to 0.1. The encoding constants, model and data, are 24 and 16.
+
+We calculated the MDL value of this cluster as if its dimension is unknown
+to us, as it happens during a selection of the cluster candidate manifold
+in LMCLUS algorithm. We specify during the MDL value calculation that our
+5D cluster has dimension in range from 1 to 9. Moreover, we use various
+quantization errors during this experiment to understand how precision of
+the cluster description affects goodness of the selected cluster structure.
+
+<<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="mdl-exp5"; fig_cap="MDL values, calculated with various cluster dimensionality parameters and quantization error \\textepsilon for a cluster that is actually a 5D LM cluster in a 10D space.">>=
+# Plot results of experiment 5
+N = 10
+M = 5
+σs_5D = [fill(1.,M); fill(0.1,N-M)]
+epsilons = ["1e-"*string(i) for i in 1:6]
+
+df = experiment5(samples, σs_5D, M, epsilons, 24, 16)
+dfc = vcat([g |> groupby(:ε) |> [mean, std] for g in groupby(df, :dim)]...)
+r_ec_5d = DataFrame(MDL = dfc[:MDL_mean],
+                    min = dfc[:MDL_mean]-1.984*dfc[:MDL_std]/sqrt(samples),
+                    max = dfc[:MDL_mean]+1.984*dfc[:MDL_std]/sqrt(samples),
+                    dim = convert(Array{Int}, dfc[:dim_mean]),
+                    ε = dfc[:ε])
+plot(r_ec_5d, x=:dim, y=:MDL, ymin=:min, ymax=:max, color=:ε,
+    Geom.line, Geom.ribbon, Scale.y_log2, Guide.xticks(ticks=unique(r_ec_5d[:dim])))
+@
+
+Fig.~\ref{fig:mdl-exp5} shows that MDL value calculated with correct structural
+parameters of the examined linear manifold cluster has minimum value when
+the dimension parameter corresponds to the cluster dimensionality.
+As we established before, see Fig.~\ref{fig:mdl-exp1}, low values of
+the quantization error $\varepsilon$ will result in the high cluster MDL value.
+High values of $\varepsilon$  will result in the low cluster MDL value.
+If the quantization error $\varepsilon$ set to small value, the cluster MDL
+value will decreases monotonically with the dimension of cluster.
+If the quantization error $\varepsilon$ set to large value, the cluster MDL
+value will increases monotonically with the dimension of cluster.
+If the quantization error $\varepsilon$ set correctly, the cluster MDL
+value will decreases until the right number of dimensions is selected after
+which MDL value increases with increasing number of dimension parameter.
+
+% However, when the cluster dimension considered to be lower then the actual one,
+% some of the constrained dimensions forced to be quantized. This leads to
+% the smaller entropy value in comparison to the proper encoding of the cluster
+% when the quantization error is high, or to large values when the quantization
+% error is low.
+% Similar situation arise when the cluster dimension considered to be higher then
+% the actual one, so some unconstrained dimensions are forced to constant encoding
+% rather then quantization which results in the larger MDL value in comparison to
+% the proper encoding.

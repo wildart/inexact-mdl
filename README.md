@@ -1,6 +1,5 @@
 # Inexact MDL for Linear Manifold Clusters
 
-
 ## Recreate figures
 
 This LaTeX document contains embedded Julia code. In order to compile
@@ -19,9 +18,10 @@ Use `jlweave` script to reproduce experiments and compile parts of the document,
 
 In order to recreate figures for the paper, run following commands:
 
-    bin/jlweave results.texw
-    bin/jlweave zero-dim-mdl.texw
-    bin/jlweave mdl-error.texw
+    bin/jlweave src/results.texw
+    bin/jlweave src/zero-dim-mdl.texw
+    bin/jlweave src/mdl-error.texw
+    bin/jlweave src/mdl-clust.texw
     julia src/climate_data_v3.jl
 
 

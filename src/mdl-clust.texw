@@ -1,0 +1,267 @@
+\subsection{Clustering Minimal Description Length}
+\label{ssc:mdl-clust}
+
+In this section we analyze changes in the LM minimal description length values
+when it is computed for a collection of clusters of arbitrary dimension and size
+-- clustering.  
+
+For our experiments we performed clustering of the climate dataset,
+see Section \ref{ssc:climate}. We performed multiple clusterings of the dataset
+varying only one parameter -- \emph{best\_bound}. This parameter affect
+cluster partitioning mechanism in LMCLUS algorithm which influence a final
+number of generated clusters \cite{Haralick:2007rt}. We generate a sample 
+composed of clusterings produced by changing \emph{best\_bound} parameter in
+range [0.1, 1.2] with value increment of 0.05. This results in 23 clusterings
+per each clustering sample. For a statistical evaluation, we collected 1000
+clustering sample, total 23000 clusterings.
+
+For the reference to the Köppen-Geiger (KG) climate classification system that
+identifies 34 climate classes, we set \emph{number\_of\_clusters} parameter,
+an expected number of clusters for the LMCLUS algorithm, to 34.
+This parameter affects sampling procedure for a manifold basis of a prospective
+cluster \cite{Haralick:2007rt}.
+
+In our experiments, we also set minimum cluster size parameter,
+\emph{min\_cluster\_size}, to 150, and sampling factor parameter,
+\emph{sampling\_factor}, which is used in the sampling heuristics to constrain
+a number of samples for potential cluster linear manifold, to 1.0.
+Rest of the LMCLUS algorithm parameters where set to default values.
+For more detailed description of LMCLUS algorithm parameters consult
+Table~\ref{tab:lmclus-params} in the Appendix~\ref{ssec:lmclus-params}.
+
+% Setup
+<<echo=false;cache=false>>=
+# load modules
+using DataFrames
+using Query
+using PLplot
+using JLD
+PLplot.set_default_device(:pdfcairo)
+joinpath(pwd(), "src/plot-utils.jl") |> include # additional plots
+
+# plot bootstrapped average dimension of clusters in clustering of size 8
+import Bootstrap # for Bootstrap CI for estimation
+function bootci(data; α=0.05, boot=1500)
+    bs = Bootstrap.bootstrap(data, mean, Bootstrap.BasicSampling(boot))
+    bci = Bootstrap.ci(bs, Bootstrap.BasicConfInt(1-α)) |> first
+    return [bci...]
+end
+
+# load data for analysis
+X = load("data/cl-data.jld", "data")
+N, d = size(X) #17781.0 # size of the dataset
+data = readtable("data/cl-mdl.csv");
+@
+
+\subsubsection{Parameters of Clusterings}
+\label{sssc:clust-params}
+
+We analyzed a clustering size, which is a number of clusters in the clustering,
+gathered from generated clustering samples. First, we group all clusterings by
+their sizes with respect to \emph{best\_bound} parameter.
+
+<<echo=false; cache=false; fig_pos="H"; out_width="5.5in"; label="best-bound-cls"; fig_cap="Size of clusterings (number of clusters in the clustering) produced by LMCLUS algorithm by varying \\emph{best\\_bound} parameter value.">>=
+# Plot number of clusters vs 'best_bound' parameter values
+#
+# Pull together clusterings of the same size
+clsize_bb = by(data, :ClusterID, 
+               df->DataFrame(ClusteringSize=length(df[:ClusterID]), BBound=first(df[:BBound])))
+medclsize_bb = by(clsize_bb, :BBound, df -> DataFrame(MedClusteringSize = median(df[:ClusteringSize])))
+
+# and plot 
+clssize_by_bb = @from r in clsize_bb begin
+    @group r.ClusteringSize by r.BBound into g
+    @select get(g.key) => convert(Vector{Float64}, map(get,  g))
+    @collect Dict
+end
+
+# same as above but a violin plot
+# draw(width=720, height=480) do opt
+#     violin(clssize_by_bb, trim=false, bw=0.4, width=2.)
+#     PLplot.labels("Best Bound", "Number of clusters in a clustering", "")
+# end
+
+draw(width=720, height=480) do opt
+    boxplot(clssize_by_bb, quartile=:hinges)
+    PLplot.labels("Best Bound", "Number of clusters in a clustering", "")
+end
+@
+
+Figure~\ref{fig:best-bound-cls} shows a large variation for clustering sizes
+for \emph{best\_bound} in range [0.4,0.7]. This range behaves as a transition
+zone between clusterings with a small number of clusters, corresponding to
+the large \emph{best\_bound} value, and a large number of clusters,
+corresponding to the small \emph{best\_bound} value. We can speculate that for
+current dataset algorithm is not able to pick mid range clusters, resulting
+in arbitrary partitioning of some large clusters. 
+
+<<echo=false; cache=false; fig_pos="H"; out_width="4.5in"; label="best-bound-cl-34"; fig_cap="The \\emph{best\\_bound} parameter value distibution of clustering of size 34.">>=
+# best bound by  clustering sizes
+bb_by_clssize = @from r in clsize_bb begin
+    @group r.BBound by r.ClusteringSize into g
+    @select Float64(get(g.key)) => convert(Vector{Float64}, map(get,  g))
+    @collect Dict
+end
+
+# plot `best_bound` parameter values for clusterings with 34 clusters
+clustsize = 34
+
+draw() do opts
+    PLplot.histogram(bb_by_clssize[clustsize], bins=4)
+    PLplot.labels("Best Bound", "Count", "Best Bound Parameter Distribution for Clustering of Size $clustsize")
+end    
+@
+
+Figure~\ref{fig:best-bound-cl-34} shows a distribution of the \emph{best\_bound}
+parameter for the clustering size equal to 34, which correspond to the number of
+climate zones in Köppen-Geiger classification. We can observe that
+\emph{best\_bound} parameter is distributed within a "transitional" range where
+the clustering algorithm produces clusterings with wide variation of sizes for
+given parameters, see Figure~\ref{fig:best-bound-cls}.
+
+
+Next, we analyze dimensionality of clusters from the sampled clusterings.
+Results showed that majority of the clusters in various sized clusterings are
+1-dimensional. Usually, the last cluster has dimension zero which is by design -
+this cluster is a collection of all outliers that algorithm wasn't able to
+associate with any known cluster.
+Moreover, a cluster, before last one in a clustering of any size,
+has higher dimension then one. This behavior can be attributed to constrained
+minimal cluster size, forcing algorithm to generate high-dimensional clusters
+with that would pass minimal cluster size threshold, see discussion in
+the beginning of Section~\ref{ssc:mdl-clust}.
+
+<<echo=false; cache=false; fig_pos="H"; out_width="6.0in"; label="mdl-clust-cdim"; fig_cap="The \\emph{best\\_bound} parameter value distribution of clustering of size 34.">>=
+# group clusters in clusterings, and into cluster dimension distributions
+cldims = @from r in data begin
+    @group r by r.ClusterID into g
+    @let cdim = Vector{Int}([get(s[:ManifoldDim]) for s in g])
+    @select {ClusteringSize=length(cdim), ClusterDims = cdim}
+    @collect DataFrame
+end
+
+# group dimensions of the corresponding clusters in clusterings of the same size
+cldim_by_clsize = @from r in cldims begin
+    @group r by r.ClusteringSize into g
+    @select g.key => hcat(map(e->e[2], g)...)'
+    @collect Dict
+end;
+
+# plot cluster dimension distribution for clusterings of various size 
+mean_cldim_by_clsize = Dict([(Float64(k),vec(mean(v,2))) for (k,v) in cldim_by_clsize])
+draw(width=800, height=480) do opts            
+    boxplot(mean_cldim_by_clsize)
+    PLplot.abline!(h=1., col=7)
+    color!(1)
+    PLplot.labels("Clustering Size", "Average Cluster Dimension", "Cluster Dimension Distribution in Various Size Clusterings") 
+end
+@
+
+Figure~\ref{fig:mdl-clust-cdim} shows a cluster dimension distribution for
+clusterings of different size. The average dimension of clusters approaches 1
+(red line) as number of clusters grows in a clustering. However, there is
+a large variability in a cluster dimensionality for small-sized clusterings,
+which gradually decreases as the clustering size increases.
+
+
+In order investigate further occurrence of this pattern, we will look at
+the cluster size in generated clusterings. We grouped clusters from
+the clusterings of the same size and pooled together corresponded cluster sizes.
+
+<<echo=false; cache=false; fig_pos="H"; out_width="6.0in"; label="clust-size-14"; fig_cap="Cluster size distribution for the clustering of size 14.">>=
+# group clusters in clusterings, and into cluster size distributions
+cldims = @from r in data begin
+    @group r by r.ClusterID into g
+    @let cdim = Vector{Int}([get(s[:ClusterSize]) for s in g])
+    @select {ClusteringSize=length(cdim), ClusterSize = cdim}
+    @collect DataFrame
+end
+# group dimensions of the corresponding clusters in clusterings of the same size
+csize_by_clsize = @from r in cldims begin
+    @group r by r.ClusteringSize into g
+    @select g.key => hcat(map(e->e[2], g)...)'
+    @collect Dict
+end;
+
+# plot bootstrapped average cluster size in clustering of with 14 clusters
+clustsize = 14
+draw(width=800, height=480) do opts            
+    # clusters size with CI
+    boxplot(csize_by_clsize[clustsize], quartile=:tukey)
+    # bootstrapped mean clusters size with CI
+    bci = mapslices(s->bootci(s,α=0.05) , csize_by_clsize[clustsize], 1)
+    plot!(bci[1,:]; typ=:line, pch=Int32(20), col=7)
+    ciplot!(bci)        
+    # minimal cluster size
+    PLplot.abline!(h=150, col=5)
+    color!(1)
+    PLplot.labels("Cluster Number", "Cluster Size", "Total Clusters: $clustsize")    
+end
+@
+
+Figure~\ref{fig:clust-size-14} shows distribution of the cluster sizes for clusterings with
+14 clusters. The red line on a plot is a bootstrapped mean cluster size with
+the corresponding 95\% confidence interval, and the blue line is a minimal
+cluster size specified by the LMCLUS parameter, \emph{min\_cluster\_size},
+which is set to 150.
+
+As the number of clusters in the clustering grows, the cluster size  approaches
+to the minimal cluster size threshold. Moreover, the cluster size gradually
+decreases, for from large clusters, generated at the beginning of
+the clustering procedure, to the clusters with the size near the threshold limit
+for clusters produced near the end of clustering procedure. This behavior is
+observed for all sizes of clusterings, especially with few clusters.
+
+
+\subsubsection{Clustering MDL Calculations}
+\label{sssc:clust-mdl}
+
+<<echo=false;cache=false>>=
+# group model MDL-related sample data
+clust_mmdl_stats = @from r in data begin
+    @group r by r.ClusterID into g
+    @let mmdl = map(s->get(s[:ModelDL]), g)
+    @select {
+        Clustering     = get(g.key),
+        ClusteringSize = Int(length(mmdl)),
+        ModelDL        = map(s->get(s[:ModelDL]), g)
+    }
+    @collect DataFrame
+end
+clust_mmdl_stats[:ClusteringSize] = map(Int,clust_mmdl_stats[:ClusteringSize]);
+@
+
+In two-part MDL calculation for linear manifold clusters, first part, a cluster model description is computed as follows: $L(\mathcal{M}) = P_m N (N+1)/2$. However, when cluster is not of a linear manifold form, we calculate its description as if it's a spherical cluster. Thus, we only need to encode center of the spherical cluster in a model description, $L(\mathcal{M}) = P_m N$.
+
+Below figure shows average and median model description length for various size clusterings from the sampled data. As expected, a median clustering MDL is 9600 bits. This is a model MDL of 1-dimensional LM cluster, 32 x 24 x 25/2 = 9600, which is a dominant cluster in all generated clustering samples. An average cluster model model description length value of a same size clusterings also follows expected behavior. As almost every clustering contains a 0-dimension cluster of  outliers, the more clusters in the clustering, the closer average model MDL value to the model MDL of 1-dimensional LM cluster, 9600.
+
+
+<<echo=false;cache=false>>=
+# plot cluster model description length from sampled clusterings
+modelmdl_by_cls = @from r in clust_mmdl_stats begin
+    @orderby r.ClusteringSize
+    @group r by r.ClusteringSize into g
+    @select {
+        ClusteringSize = get(g.key),
+        AvgModelDL    = round(mean(g.elements[1][:ModelDL]), 4),
+        MedianModelDL = median(g.elements[1][:ModelDL])
+    }
+    @collect DataFrame
+end
+
+draw() do opts   
+    plot(convert(Vector{Float64}, modelmdl_by_cls[:ClusteringSize]),
+         convert(Matrix{Float64}, modelmdl_by_cls[:, [:AvgModelDL, :MedianModelDL]]),
+         typ=:line, ymax=9700.
+    )
+    color!(1)
+    PLplot.labels("Number of clusters", "Cluster Model Description Length", "Cluster Model Description Length Statistics")    
+    PLplot.legend(["Average", "Median"],pos = PLplot.POSITION_BOTTOM | PLplot.POSITION_RIGHT)
+end
+@
+
+
+%Perform MDL calculation for each cluster in each clustering in each sample
+% ε = 0.001
+% Pm = 32
+% Pd = 16

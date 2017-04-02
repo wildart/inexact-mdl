@@ -5,10 +5,15 @@ FINAL=0
 BUILDDIR="build"
 LATEXOPTS="-shell-escape -output-directory $BUILDDIR"
 FILE=$1
+EXTENDED="0"
 
 if [ "$FILE" == "report" ]; then
     FINAL=1
     DOC="inexact_mdl_lmc"
+elif [ "$FILE" = "report-extended" ]; then
+    FINAL=1
+    DOC="inexact_mdl_lmc"
+    EXTENDED="1"
 elif [ "$FILE" == "icpr" ]; then
     FINAL=1
     DOC="icpr-2016"
@@ -21,17 +26,17 @@ elif [ "${FILE: -4}" == ".tex" ]; then
         exit 1
     fi
 else
-    echo "$0 expected arguments: 'report', 'icpr', 'draft' or any tex file"
+    echo "$0 expected arguments: 'report[-extended]', 'icpr', 'draft' or any tex file"
     exit 1
 fi
 
 mkdir -p $BUILDDIR
 
-pdflatex $LATEXOPTS $DOC.tex
+pdflatex $LATEXOPTS $DOC.tex $EXTENDED
 if [ $FINAL = 1 ]; then
     bibtex $BUILDDIR/$DOC.aux
-    pdflatex $LATEXOPTS $DOC.tex
-    pdflatex $LATEXOPTS $DOC.tex
+    pdflatex $LATEXOPTS $DOC.tex $EXTENDED
+    pdflatex $LATEXOPTS $DOC.tex $EXTENDED
 fi
 
 cp $BUILDDIR/$DOC.pdf .

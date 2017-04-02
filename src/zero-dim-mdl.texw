@@ -113,7 +113,8 @@ considered as a zero-dimensional manifold or spherical cluster
 Many clustering algorithms, e.g. $k$-means, produce zero-dimensional manifold
 clusters \cite{Jain:1999mf}.
 
-\IfClass{IEEEtran}{}{
+\ifIEEEtran
+\else
 <<echo=false; cache=true; fig_pos="ht"; out_width="3.5in"; label="zdc"; fig_cap="Spherical (zero-dimensional linear manifold) cluster in 2D space">>=
 # Generate and plot linear manifold cluster
 srand(RND_SEED)
@@ -129,7 +130,7 @@ draw() do opts
     PLplot.labels("x", "y", "")
 end
 @
-}
+\fi
 
 Any zero-dimensional manifold cluster is a special case of the linear manifold
 cluster, thus we can use encoding (\ref{eq:mdl-lmc-final}) to calculate the MDL
@@ -343,7 +344,7 @@ end
 
 \IfClass{IEEEtran}{}{
 Figure \ref{fig:mdl-zdc-exp2} shows results of MDL calculations for clusterings
-produced from the 1D linear manifold cluster.} We found that the division of
+produced from the 1D linear manifold cluster.}We found that the division of
 the linear manifold on multiple spherical clusters does not provide much
 difference in the resulted MDL value. As in the previous experiment, the major
 factor which affects MDL calculations is the quantization error parameter.

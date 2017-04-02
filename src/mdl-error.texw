@@ -29,7 +29,8 @@ how changes in the encoding of the model and data affects resulting MDL value.
 % Setup
 <<echo=false;cache=false>>=
 using PLplot
-joinpath(pwd(), "src/clust-utils.jl") |> include
+include( joinpath(pwd(), "src/clust-utils.jl") )
+
 
 #resultsfile = joinpath(pwd(),"data/MDL-1951-1980-360x180-lmclus-mdl-on.nc")
 resultsfile = joinpath(pwd(),"data/MDL-1951-1980-360x180-lmclus-mdl-off.nc")
@@ -67,7 +68,7 @@ dimensional cluster, from the above clustering results.
 \begin{figure}[H]
 \centering
 \includegraphics[width=3.5in]{img/CL02.png}
-\caption{Cluster \#2 from LMCLUS clustering of the climate dataset.}
+\caption{Cluster \#2 of the climate dataset created by LMCLUS algorithm, see Figure \ref{fig:cl-lmclus} in Section \ref{ssc:climate}.}
 \label{fig:cl-lmclus-c2}
 \end{figure}
 
