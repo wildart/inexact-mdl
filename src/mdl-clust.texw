@@ -35,8 +35,8 @@ Table~\ref{tab:lmclus-params} in the Appendix~\ref{ssec:lmclus-params}.
 using DataFrames
 using Query
 using PLplot
-using JLD
 PLplot.set_default_device(:pdfcairo)
+
 joinpath(pwd(), "src/plot-utils.jl") |> include # additional plots
 
 # plot bootstrapped average dimension of clusters in clustering of size 8
@@ -48,7 +48,7 @@ function bootci(data; α=0.05, boot=1500)
 end
 
 # load data for analysis
-X = load("data/cl-data.jld", "data")
+X = readcsv("data/CRU-GPCC-1951-1980-1x1-norm.csv")'
 N, d = size(X) #17781.0 # size of the dataset
 data = readtable("data/cl-mdl.csv");
 @
