@@ -1,0 +1,79 @@
+\subsection{LMCLUS Algorithm Parameters} \label{ssec:lmclus-params}
+\mbox{}
+
+\begin{longtable}[H]{@{\extracolsep{\fill}}lp{4in}p{.7in}@{}}
+\caption{List of LMCLUS algorithm parameters} \label{tab:lmclus-params} \\
+
+\toprule\addlinespace
+\textbf{Parameter} & \textbf{Description} & \textbf{Default value} \\
+\midrule\addlinespace
+\endfirsthead
+
+\multicolumn{3}{c}%
+{{\bfseries \tablename\ \thetable{} (continued)}} \\
+\toprule\addlinespace
+\textbf{Parameter} & \textbf{Description} & \textbf{Default value} \\
+\midrule
+\endhead
+
+\addlinespace
+\midrule
+\multicolumn{3}{r}{\textbf{Continued on next page}} \\
+\endfoot
+
+\hline \hline
+\endlastfoot
+
+% Table of parameters
+
+min\_dim & Minimum dimensionality of manifolds & $\leq N-1$ \\ \addlinespace
+
+max\_dim & Maximum dimensionality of manifolds & $\leq N-1$ \\ \addlinespace
+
+number\_of\_clusters & Estimate and specify nominal number of resulting clusters & 100 \\ \addlinespace
+
+min\_cluster\_size & Minimum cluster size (or noise size) in order to prevent generation of small clusters & 50 \\ \addlinespace
+
+random\_seed & Random generator seed value. & \\ \addlinespace
+
+sampling\_heuristic & Choose sampling heuristics for the linear manifold
+basis selection. There are three modes of the sampling:
+\begin{enumerate}
+\item algorithm will use a probabilistic heuristic which will sample a quantity
+exponential in `maximum cluster dimension' and `maximum number of
+clusters' parameters;
+\item will sample fixed number of points based on `sampling\_factor' parameter;
+\item the lesser of the previous two.
+\end{enumerate}
+& 3 \\ \addlinespace
+
+sampling\_factor & Sampling factor used in the sampling heuristics to constrain a number of samples to fixed value. It is equal to an inspected-at-the-moment dataset size multiplied to a this parameter value. & 0.01 \\ \addlinespace
+
+hist\_bin\_size & Fixed number of bins for the distance histogram. If this parameter is set to zero then proportional selection of a histogram bin number is used & 0 \\ \addlinespace
+
+max\_bin\_portion & Maximum histogram bin size as a portion. If the number of bins for the distance histogram is not specified, it is calculated proportionally to the dataset size. & 0.1 \\ \addlinespace
+
+histogram\_sampling & Turns on a sampling for a distance histogram. Instead of computing the distance histogram from whole dataset, algorithm draws smaller sample for the histogram construction. & false \\ \addlinespace
+
+error\_bound & Sampling error bound determines a minimal number of samples required to correctly identify a linear manifold cluster. & 0.0001 \\ \addlinespace
+
+best\_bound & Separation best bound value is used for evaluating a goodness of separation characterized by a discriminability and a depth between modes of a distance histogram. & 1.0 \\ \addlinespace
+
+mdl & Enables the minimum description length (MDL) heuristic for a complexity validation of a generated cluster & false \\ \addlinespace
+
+mdl\_model\_precision & MDL heuristic requires to specify a model precision encoding constant. & 32 \\ \addlinespace
+
+mdl\_data\_precision & MDL heuristic requires to specify a data precision encoding constant. & 16 \\ \addlinespace
+
+mdl\_quant\_error & Quantizing error of a bin size calculation for a histogram which used in determining entropy value of the empirical distance distribution. & 0.001 \\ \addlinespace
+
+mdl\_compres\_ratio & Quantizing error of a bin size calculation for a histogram which used in determining entropy value of the empirical distance distribution. & 1.05 \\ \addlinespace
+
+basis\_alignment & Turn of/off an alignment of a manifold cluster basis. If it's on, a manifold basis of the generated cluster is aligned along the direction of the maximum variance (by performing PCA). & false \\ \addlinespace
+
+dim\_adjustment & Turn of/off a linear manifold cluster dimensionality detection by looking for portion of a variance associated with principal components. & false \\ \addlinespace
+
+dim\_adjustment\_ratio & Ratio of manifold principal subspace variance. & 0.99 \\ \addlinespace
+
+\bottomrule
+\end{longtable}

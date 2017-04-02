@@ -1,0 +1,60 @@
+% -*- root: inexact_mdl_lmc.tex -*-
+\section{Introduction}\label{sc:intro}
+
+Minimum Description Length (MDL) can be understood to be a technical specification
+or formalization of the Occam's razor principle to understand a data set.
+One way to pose the general problem is given a data set, define a language in
+which to represent the data set so that the data set described in the language
+is a meaningful description and the number of bits for the representation in
+the language is minimal. This is different from data compression in the sense
+that data compression only uses information theoretic methods to minimize the
+number of bits to represent the data set, but the representation in itself
+is not meaningful. It does not give any insight into the structure of the data.
+\IfClass{IEEEtran}{}{
+By first defining a language which is capable of representing the data and
+the structure of the data in a meaningful way, minimum description length does
+compress the data and simultaneously provides the structure of the data as well.
+}
+If there are multiple possible languages for describing the data, minimum
+description length can be the principle for deciding which is the best language.
+
+\IfClass{IEEEtran}{}{
+It is easy to give an example of data that has a structure. Consider a data set
+upon which it is appropriate to do linear regression. So there are $K$ observations
+of the values of $N$ independent variables in which the values are considered
+to have no error. For each of the $K$ observations, there is one dependent
+variable whose value is considered to be noisy. The linear regression context
+assumes that the dependent variable is a linear combination of the $N$ independent
+variables. This linear combination is the structure of the data. However,
+regression only provides the estimates of the linear combination and the total
+squared error. So we have the structure of the data but we do not know the values
+of the $K$ observations of the dependent variable. An MDL approach would define
+the language to be the language of linear combinations. It would assume that
+the $K$ observations of the $N$ independent variables are known precisely and
+do not enter into the MDL description. It would then represent the $K$ observations
+of the dependent variable. But instead of representing these $K$ observations
+independent of the linear combination data structure, it would represent each
+value of the dependent variable in terms of the difference between its actual
+value and the value that would be estimated using the data structure.
+These differences would then be encoded in an efficient information theoretic
+way based on entropy.
+}
+
+
+% In this paper we develop an inexact minimum description length method for
+% describing the structure of the data in terms of linear manifold clusters.
+Our description language is the language of linear manifolds. Each linear
+manifold cluster consists of the description of the linear manifold and
+the coding of the data associated with the linear manifold is given by encoding
+the orthogonal projection of each data point onto its manifold and the encoding
+of the difference between its position off the manifold and its orthogonal
+projection on the manifold. The inexactness of the description arises because
+the description of the position of each data point off the manifold is
+described not exactly, but with some controlled error.
+
+
+Section \ref{sc:lit-review} is a literature review. Section \ref{sc:lmclus}
+is a technical description of the linear manifold clustering stochastic search
+technique. Section \ref{sc:mdl-lmclus} describes how the MDL principle is used
+to determine whether to accept a cluster or not. Section \ref{sc:results}
+discusses our results and section \ref{sc:conclusion} concludes the paper.

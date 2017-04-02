@@ -1,0 +1,108 @@
+% -*- root: inexact_mdl_lmc.tex -*-
+\section{Literature Review}
+\label{sc:lit-review}
+\IfClass{IEEEtran}
+{
+Subspace clustering \cite{Kriegel:2009fj} is a special case of linear manifold
+clustering, where the basis vector set for each cluster is a subset of
+the natural basis vectors of the space.
+%
+Data can be well approximated by a mixture of linear manifolds (linear or affine
+subspaces).
+}{
+The main challenge for clustering in high-dimensional spaces is that different
+subsets of points are relevant for different clusters, but cluster points,
+originally in the full space, associated with various subspaces. Moreover,
+various correlations between points are relevant to different clusters.
+Variety of subspace and correlation clustering algorithms try to find clusters
+in axis-aligned and arbitrarily oriented subspaces \cite{Kriegel:2009fj}.
+%
+Because, there are infinite number of subspaces, additional assumptions are
+required to overcome infinite search space. One of the assumptions is that
+high-dimensional observations lie on or close to multiple smooth low-dimensional
+manifolds embedded in a full space of dataset. Thus, viewing cluster as
+a collection of points on or near a compact manifold becomes a reasonable and
+promising extension of traditional centroid-based clustering methods, which
+leads to manifold clustering.
+%
+Data can be well approximated by a mixture of linear manifolds (linear or affine
+subspaces).  Such assumption leads to a large number of linear manifold
+clustering methods.
+}
+Haralick and Harpaz \cite{Haralick:2007rt} presented a linear manifold
+clustering algorithm (LMCLUS), which is a strict partitioning clustering
+algorithm, that performs stochastic search on the dataset in order to find best
+possible location of the linear manifold clusters.
+Kak \cite{Kak:2016KP} used a linear manifold representation of a fixed number of
+clusters, obtained by sampling the original dataset and minimizing
+the reconstruction error from point assignments to cluster prototypes.
+Peng et al. \cite{Peng:2013PZ} constructed linear manifold cluster prototypes by
+performing spectral decomposition of small random samples with subsequent
+assignment of the rest of the dataset points to a nearest subspace cluster
+prototype. Wang et al. \cite{Wang:2011yu} used a mixture of probabilistic PCAs
+to form a collection of linear manifolds on the dataset.
+\IfClass{IEEEtran}{}{
+These linear manifolds were
+used to reconstruct non-linear manifolds, that reflect local geometric
+information of the data, and from a suitable affinity matrix that served as
+input for spectral clustering technique.}
+
+Moreover, many linear methods fail to provide good performance when applied to
+nonlinear structures. On the other hand, nonlinear methods, such as nonlinear
+dimensionality reduction techniques, can be naturally used on linear manifolds
+\IfClass{IEEEtran}{\cite{Souvenir:2005pr, Goh:2008vr,Subbarao:2006SM}.}{.}
+\IfClass{IEEEtran}{}{
+Souvenir \cite{Souvenir:2005pr} used non-linear dimensionality reduction, i.e.
+multidimensional scaling, to construct low-dimensional embedding, a non-linear
+manifold, of the original data that was consequently partitioned by EM
+clustering algorithm.
+Goh and Vidal \cite{Goh:2008vr} used a Locally Linear Embedding (LLE) reduction
+technique, that used the Riemannian distance, of the original data to construct
+smooth low-dimensional manifolds representation for consequent spectral
+clustering.
+Subbarao and Meer \cite{Subbarao:2006SM} took more general approach in
+describing manifold structures on data. They used a particular type of analytic
+manifolds, Grassmann manifolds, to approximate geodesic distance on the manifold
+structure which was used in conjunction with the mean shift clustering algorithm.
+%
+One of challenges when working with manifold clustering techniques is
+an uncertainty related to the selection of the dimensionality of the manifold
+embedding. As many algorithms, LMCLUS  does not know the dimensions of
+the embedded manifold clusters before seeing the data. The original solution
+in \cite{Haralick:2007rt} was to look through all subspace dimensions starting
+from lowest. However, such an approach creates a problem - a dominance of
+a high-dimensional clusters.
+%
+There is high probability that a high-dimensional subspace is selected over
+a low-dimensional subspace when a cluster is constructed. This happens because
+the relative distance between the farthest point and the nearest point converges
+to 0 with increasing dimensionality \cite{Aggarwal:2001hk}, which results in
+very tight separation bounds for high-dimensional candidate clusters that allows
+them to pass a cluster formation criteria more often then for a low-dimensional
+candidate.
+%
+Our solution  addresses the problem of the selection of
+a high-dimensional manifold preference by introducing a regularization technique
+based on a minimum description length (MDL) value of the prospective cluster.
+The minimum description length principle is a method for inductive
+inference that provides a generic solution to the model selection problem.
+MDL is based on the following insight: any regularity in the data can be used
+to compress the data, that is, to describe it using fewer symbols than
+the number of symbols needed to describe the data literally \cite{Hansen:2001HY}.
+The minimum description length (MDL) principle can be used in clustering to
+discover underlying regularities, that are common to all the members of a group,
+and an internal validation of the cluster goodness \cite{Kontkanen:2005pm, Georgieva:2011tk}.
+}
+
+Rissanen at al. \cite{Rissanen:2005RT} presented an approach where data and
+noise are separated, and the code length of the model is restricted by a
+parameter. The hypothesis selected by MDL captures all the structure inherent in
+the data. Given the hypothesis, the data cannot be distinguished from random
+noise.
+\IfClass{IEEEtran}{}{
+Therefore, it may be taken as a basis for lossy data compression: rather
+than sending the whole sequence, we only send the hypothesis representing the
+``structure'' in the data. The receiver can then use this hypothesis to generate
+``typical'' data for it - this data should look statistically just the same as
+the original data.
+}

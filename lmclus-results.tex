@@ -1,0 +1,120 @@
+\subsection{Understanding the Results of Linear Manifold Clustering}
+\label{ssec:lmclus-results}
+
+%TODO: wrong \lambda_n^2 < \theta^2
+Let the measurement space be $R^N$ and the data set, consisting of
+a list of observations from $R^N$, be $D$. A linear manifold cluster
+$C$ of dimension $K$ is defined by
+\begin{eqnarray*}
+C=\{x\in D\ &|&\ \mbox{ for some }\lambda_1,\ldots,\lambda_N,\\
+ && x=\mu+\sum_{n=1}^N \lambda_n\alpha_n \mbox{ where }\\
+&&      \sum_{k=K+1}^N \lambda_n^2 < \theta^2\}
+\end{eqnarray*}
+
+$\mu$ is the center of the cluster so it is the vector that translates
+the origin to the center of the manifold. It is computed as the mean of the
+data vectors that are in the cluster.
+
+\begin{eqnarray*}
+\mu&=&\frac{1}{|C|}\sum_{x\in C} x
+\end{eqnarray*}
+
+
+$\alpha_1,\ldots,\alpha_N$ are an orthonormal basis for $R^N$ and
+$\alpha_1,\ldots,\alpha_K$ constitute the basis for the $K$-dimensional
+manifold.
+
+For any $x\in C$, the corresponding $\lambda_1,\ldots,\lambda_N$ are given
+by
+\begin{eqnarray*}
+\lambda_n&=&\alpha_n^\prime(x-\mu)
+\end{eqnarray*}
+
+The linear manifold bounding box $B$ is given by
+
+\begin{eqnarray*}
+B=\{x\in R^N\ &|&\ \mbox{ for some } \lambda_1,\ldots,\lambda_K,
+ x=\mu+\sum_{k=1}^K \lambda_k\alpha_k \\
+ \mbox{ where }\lambda_{kmin}\le&\lambda_k& \le \lambda_{kmax} \\
+\lambda_{kmin}&=&\min_{x\in C} \alpha_k^\prime(x-\mu), k=1,\ldots,K\\
+\lambda_{kmax}&=&\max_{x\in C} \alpha_k^\prime(x-\mu), k=1,\ldots,K\}\\
+\end{eqnarray*}
+
+The constants $\lambda_{kmin}$ and $\lambda_{kmax}$ determine the extent
+of the boundary of the bounding box in dimension $k$ whose basis vector is $\alpha_k$.
+
+To show the distribution of the points in the cluster, we show the histogram
+of the data orthogonally projected onto each basis vector of the cluster.
+Let $D_k$ be list of the projections on the $k^{th}$ axis. Then
+\begin{eqnarray*}
+D_k&=&< a\in [\lambda_{kmin},\lambda_{kmax}] \ | \ \mbox{ for some } x\in C,\ a=\alpha_k^\prime(x-\mu)>
+\end{eqnarray*}
+
+If the histogram of the $k^{th}$ axis has $M$ intervals, $[\eta_m,\eta_{m+1}], m=1\ldots,M$
+then
+\begin{eqnarray*}
+\eta_m&=&\lambda_{kmin}+ \frac{(m-1)}{M}(\lambda_{kmax}-\lambda_{kmin})
+\end{eqnarray*}
+The probability $p_m$ that a data point of the cluster is in interval $[\eta_m,\eta_{m+1}]$
+is given by
+\begin{eqnarray*}
+p_m&=&\frac{1}{\#D_k} \# < x\in C\ | \ \eta_m \le \alpha_k^\prime(x-\mu) \le \eta_{m+1}>
+\end{eqnarray*}
+
+The $M$ heights of the histogram $H_k$ of the $k^{th}$ axis is then given by
+$p_1,\ldots,p_M$.
+These $K$ histograms then give a first order picture of how the data is distributed
+on the manifold in the reference frame of the manifold.
+
+Of course the observed data points are not, in general, on the cluster manifold.
+Rather, they are close to the manifold. The distance $\rho$ of an observed data point
+$x$ from the manifold is given by
+
+\begin{eqnarray*}
+\rho(x)&=&\sqrt{\sum_{k=K+1}^N [\alpha_k^\prime (x-\mu)]^2}\\
+&=& \sqrt{(x-\mu)^\prime(x-\mu)-\sum_{k=1}^K[\alpha_k^\prime (x-\mu)]^2}
+\end{eqnarray*}
+
+If there are $M$ intervals to the histogram and the $m^{th}$ interval
+is $[\delta_m,\delta_{m+1}]$, then
+
+\begin{eqnarray*}
+\delta_m=\rho_{min}+\frac{m-1}{M}(\rho_{max}-\rho_{min})
+\end{eqnarray*}
+where
+\begin{eqnarray*}
+\rho_{min}&=&\min_{x\in C}\rho(x)\\
+\rho_{max}&=&\theta
+\end{eqnarray*}
+
+The heights $q_1,\ldots,q_M$ of the histogram $H$ are given by
+
+\begin{eqnarray*}
+q_m&=&\frac{1}{\#C}<x\in C\ | \ \delta_m \le \rho(x) \le \delta_{m+1},\ m=1,\ldots,M>
+\end{eqnarray*}
+This histogram shows the spread of the data off the manifold.
+
+To complete the information of the cluster, the vectors
+\begin{itemize}
+\item $\mu$
+\item $\alpha_1,\ldots,\alpha_K$
+\end{itemize}
+must be given.
+
+For those people who would like to understand the linear manifold cluster
+in terms of a set of constraint equations, define
+
+\begin{eqnarray*}
+B&=&\left(\begin{array}{c}
+               \alpha_{K+1}^\prime\\
+               \alpha_{K+2}^\prime\\
+               \vdots\\
+               \alpha_{N}^\prime
+               \end{array}\right)
+\end{eqnarray*}
+
+Then the constraint equation for the manifold of the cluster is given by
+
+\begin{eqnarray*}
+B(x-\mu)&=&0
+\end{eqnarray*}
