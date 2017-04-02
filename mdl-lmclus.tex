@@ -1,0 +1,340 @@
+% -*- root: inexact_mdl_lmc.tex -*-
+\section{MDL Linear Manifold Cluster Description}
+\label{sc:mdl-lmclus}
+\IfClass{IEEEtran}{}{
+We use the MDL principle to determine the number of bits required to describe the
+points of a candidate linear manifold cluster with a controlled total squared error.
+If this number of bits is not sufficiently smaller than the number of bits to
+represent in their raw form the points associated with the candidate linear
+manifold cluster, the candidate linear manifold cluster is rejected.
+}
+First we determine the number of bits it takes to encode the translational
+offset of the linear manifold and then the orthonormal basis vectors
+spanning the linear manifold. Then we determine the number of bits it takes
+to encode the points of the candidate linear manifold cluster to
+within a given squared error.
+
+Let $X = \{x_j \in \mathbb{R}^N | \; j = 1, \dots, J \} $ be the points
+associated with the $M$-dimensional linear manifold cluster $\mathcal{M}$.
+It is described by a set of orthonormal basis vectors, that span the linear
+manifold, $B = \{b_m \in \mathbb{R}^N | m = 1, \dots, M \}$ and
+a translation vector $\mu \in \mathbb{R}^N$.
+
+\paragraph{Model Encoding}
+The encoding of the translation vector $\mu$ requires $N$ numbers.
+
+To represent any vector $x$, after its translation, we need the basis vectors
+spanning the manifold and we need the basis vectors orthogonal to the manifold.
+From the basis vectors spanning the manifold we can determine the relative
+coordinates of the orthogonal projection of $x$ to the manifold and from
+the basis vectors spanning the orthogonal complement space, we can determine
+the orthogonal projection of $x$ to the complement space.
+
+Since the basis vectors of the linear manifold and its orthogonal compliment
+space are orthonormal, we can represent the basis vectors in less than $N^2$
+numbers. We can use a decoding schema that uses the orthonormal constraints in
+recovering the $N$ basis vectors. Each basis vector has norm 1. This constitutes
+$N$ constraints. The orthonormality constraints specify another $N(N-1)/2$
+constraints. The total number of orthonormality constraints is then $N(N+1)/2$.
+
+To describe the linear manifold requires $N$ numbers for the offset of
+the manifold from the origin plus $N^2 - N(N+1)/2$ numbers for basis vectors.
+Letting $P_m$ be the number of bits used for encoding each component of
+the offset and each of the numbers required to calculate the basis vectors.
+Then the total number of bits, $L(H)$, required to specify the structure of
+a linear manifold and its orthogonal complement space is
+
+\begin{equation} \label{eq:mdl-lmc-model}
+L(H) = P_m [ N + N(N-1)/2) ] = P_m N(N+1)/2
+\end{equation}
+
+\paragraph{Data Encoding}
+
+Let $B^{N\times M}$ be a matrix whose columns are the orthonormal basis vectors
+spanning the linear manifold. Then the relative coordinates of the orthogonal
+projection of a vector $x-\mu$ to the manifold is given by $B^T (x-\mu)$.
+This is a vector of dimension $M\times 1$. Each of the $M$ components of this
+vector will be encoded with $P_d$ bits.
+\IfClass{IEEEtran}{}
+{
+Hence the encoding requires $P_d M$ bits.
+Since the offset $\mu$ lies in $col(B)$, $BB^T \mu = \mu$ and
+the reconstruction of that part of $x$ that lies on the manifold is then given
+by $\mu+B(B^T(x-\mu))$.
+}
+
+Let $\bar B^{N\times N-M}$ be a matrix whose columns are the basis vectors
+spanning the orthogonal complement space. The relative coordinates of
+the orthogonal projection of a vector $x-\mu$ to the complement space of
+the manifold is given by $\bar B^T (x-\mu)$. This is a vector having $N-M$
+components. The reconstruction of that part of $x$ that lies in the orthogonal
+complement space is given by $\bar B(\bar B^T(x-\mu))$.
+
+The total number of bits required to encode data $D$ given a model $H$ is
+\begin{equation} \label{eq:mdl-lmc-data}
+L(D|H) = J [P_d M + S(\varepsilon)]
+\end{equation}
+where $J$ is number of points in the linear manifold cluster, $S$ is the entropy
+of the distribution of cluster points, in the orthogonal compliment subspace to
+the linear manifold of the cluster, calculated to be correct within
+the fitting error $\varepsilon$.
+
+We assume that each of the $K=N-M$ components of that part of $x$ that lies in
+the orthogonal complement space is uniformly distributed, but that the interval
+of the uniform distribution is different for each component. For component $k$,
+we let the uniform distribution be defined on the interval $[-A_k/2,A_k/2]$.
+We will quantize the interval $[-A_k/2,A_k/2]$ into $N_k$ equal length
+quantizing intervals and encode component $k$ by the index of the quantizing
+interval into which it lies.
+Since the intervals are all equal length, knowing the index of the subinterval
+into which a value falls, permits the value of to be approximated by the mean
+of the subinterval into which it falls. The squared error is then the variance
+of a uniform distribution over the subinterval.
+
+\IfClass{IEEEtran}{
+Set the log of the total number of quantized choices in
+the $K$-dimensional space equal to a given $C =\sum_{k=1}^K \log N_k$.
+}
+{
+The variance of a uniform over an interval of length $L$ is
+$$
+\frac{1}{12}L^2
+$$
+%
+The interval $[-A_k/2,A_k/2]$ has length $A_k$. If this interval is divided to
+$N_k$ subintervals, the variance of each subinterval is then
+$$
+V_k=\frac{1}{12}\left(\frac{A_k}{N_k}\right)^2
+$$
+%
+The meaning of this variance is that regardless of the actual value of
+the $k^{th}$ component, the squared error arising from using the middle of
+the interval to which it belongs is $V_k$.
+%
+The variance over all the $K$ quantized components is then
+%
+$$
+\frac{1}{12}\sum_{k=1}^K \left(\frac{A_k}{N_k}\right)^2
+$$
+%
+The optimal quantizing problem is to minimize the total error
+$$
+E^2=\frac{1}{12}\sum_{k=1}^K \left(\frac{A_k}{N_k}\right)^2
+$$
+by choice of the optimal values for $N_1,\ldots,N_K$ subject to
+the constraint that the log of the total number of quantized choices in
+the $K$-dimensional space is equal to a given $C$.
+$$
+\sum_{k=1}^K \log N_k=C
+$$
+%
+Define
+$$
+\epsilon^2=\sum_{k=1}^K \left(\frac{A_k}{N_k}\right)^2+\lambda\left(\sum_{k=1}^K \log N_k-C\right)
+$$
+%
+\begin{eqnarray*}
+\frac{\partial \epsilon^2}{\partial N_k}&=&A_k^2(-2)N_k^{-3}+\lambda\frac{1}{N_k}\\
+0&=&A_k^2(-2)N_k^{-3}+\lambda\frac{1}{N_k}\\
+2A_k^2 N_k^{-2}&=&\lambda\\
+N_k^2&=&\frac{2A_k^2}{\lambda}\\
+N_k&=&\frac{2^{\frac{1}{2}}A_k}{\lambda^{\frac{1}{2}}}\\
+\log N_k&=&\frac{1}{2}\log 2+ \log A_k -\frac{1}{2}\log \lambda
+\end{eqnarray*}
+This relation permits $\lambda$ to be determined in terms of $C$ and $A_1,\ldots,A_K$\bigskip
+\begin{eqnarray*}
+C=\sum_{k=1}^K \log N_k&=& \sum_{k=1}^K\left( \frac{1}{2}\log 2+ \log A_k -\frac{1}{2}\log \lambda\right)\\
+-\frac{K}{2}\log\lambda&=&C-\frac{K}{2}\log 2-\sum_{k=1}^K\log A_k\\
+-\frac{1}{2}\log\lambda&=&\frac{C}{K}-\frac{1}{2}\log 2 -\frac{1}{K}\sum_{k=1}^K \log A_k
+\end{eqnarray*}
+Substituting the expression for $-\frac{1}{2}\log \lambda$ into the expression
+for $\log N_k$ will permit us to determine $N_k$ in terms of $C$ and $A_1,\ldots,A_K$.
+\begin{eqnarray*}
+\log N_k&=&\frac{1}{2}\log 2+ \log A_k+\frac{C}{K}-\frac{1}{2}\log 2 -\frac{1}{K}\sum_{j=1}^K \log A_j\\
+&=&\log A_k+\frac{C}{K}-\frac{1}{K}\sum_{j=1}^K \log A_j
+\end{eqnarray*}
+}
+
+From this it follows that the integer value of $N_k$ can be taken to be
+the smallest integer $N_k$ satisfying
+\begin{equation}\label{eq:quant-intervals}
+N_k(C) = \lceil A_k e^{(C-\sum_{j=1}^K \log A_j)/K} \rceil
+\end{equation}
+
+The interval lengths $A_1,\ldots,A_K$ are given and fixed.
+The values of $N_1,\ldots,N_K$ are each dependent on the value of $C$.
+So we can write the squared error $E^2$ as the variance of a uniform
+distribution over all subintervals of the $K$ quantized components,
+
+\begin{eqnarray}\label{eq:sq-quant-error}
+E^2(C)=\frac{1}{12}\sum_{k=1}^K \left(\frac{A_k}{N_k(C)}\right)^2
+\end{eqnarray}
+
+If we operate under the protocol that the quantizing must be done fine enough,
+such that for the user specified quantization error bound $\varepsilon$,
+the value of $C$ is small enough to satisfy
+\begin{equation}\label{eq:error-condition}
+ E^2(C) < \varepsilon^2
+\end{equation}
+
+\IfClass{IEEEtran}{}{
+If the maximum number of intervals $N_k$ is limited by the maximum integer
+value available for particular computational architecture, $N_{max}$. For 32-bit
+architecture, $N_{max}$ is $2^{32}$ .
+%
+Given $N_{max}$ and length of intervals $A_k \geq 1$, we can calculate the upper
+bound of the value $C$ as follows
+%
+\begin{eqnarray*}
+\log N_{max} &=& \log A_k+\frac{C}{K}-\frac{1}{K}\sum_{j=1}^K \log A_j \\
+C &=& \min_{k} \left(K \log\frac{N_{max}}{A_k} +\sum_{j=1}^K \log A_j\right)
+\end{eqnarray*}
+%
+For the lower bound of the value $C$, we use only one quantization interval in
+(\ref{eq:quant-intervals}) which results in
+%
+\begin{eqnarray*}
+\log 1 &=& \log A_k+\frac{C}{K}-\frac{1}{K}\sum_{j=1}^K \log A_j \\
+C &=& \min_{k} \left(K \log \frac{1}{A_k} +\sum_{j=1}^K \log A_j \right)
+\end{eqnarray*}
+}
+then is not hard to show that the value $C$ is defined over the interval
+\[
+% \min_k \left(K [0,\log N_{max}] - \log A_k + \sum_{j=1}^K \log A_j \right)
+\left[ 0, K \log N_{max} \right] + \sum_{j=1}^K \log A_j - \min_k \log A_k
+\]
+
+We can find the optimal number of quantization intervals $N_k$ with a given user
+defined precision value $\varepsilon$ by performing a search for appropriate
+value of $C$ in the above interval such that it would satisfy
+condition \eqref{eq:error-condition}.
+
+Given the value $C$ that satisfies \eqref{eq:error-condition}, we can calculate
+the number of bits required to encode the position of the cluster point in
+the orthogonal complement space of the linear manifold cluster. The value $C$
+corresponds to the entropy $S$ of a distribution of cluster points in
+the orthogonal compliment space, that is required in \eqref{eq:mdl-lmc-data}.
+Since the logarithms are to base $e$, $C$ does not have the meaning of bits.
+But
+\IfClass{IEEEtran}{}{
+\begin{equation*}
+C\log_2 e = \sum_{k=1}^K \log_2 N_k
+\end{equation*}
+}
+\begin{equation*}
+\frac{C}{\log 2} = \sum_{k=1}^K \log_2 N_k
+\end{equation*}
+does have the meaning of bits.
+
+\IfClass{IEEEtran}{}{
+Another approach would be calculation of the the empirical entropy of
+the points' coordinate distribution in the orthogonal compliment space.
+Given the number of quantization intervals $N_k$, we can calculate
+the empirical entropy of the point distribution in the orthogonal complement
+space of the linear manifold cluster as
+\begin{equation}\label{eq:ocs-point-entropy}
+S = -\sum_{k=1}^{K} \sum_{j=1}^{N_k} p_{kj} \log p_{kj}
+\end{equation}
+where $p_{kj}$ is a probability that the point is located in the bin $N_j$ of
+the interval $A_k$ for $k$th dimension of the orthogonal complement space.
+%
+Orthogonal complement projection associates directions where points extend
+orthogonality from the cluster support defined by the cluster linear manifold.
+In order to calculate orthogonal complement projection, we calculate principal
+components of the cluster points through the singular value decomposition, as
+$X = U \Sigma V^T$.
+The first $M$ columns of $U$ provide vectors that span the linear manifold,
+defined as the columns of matrix $B$, and last $N-M$ vectors provide vectors
+that span orthogonal complement subspace, for the cluster linear manifold.
+The columns of matrix $B^\perp$ are created from the last $N-M$ columns of
+matrix $U$. Thus, an orthogonal complement projection of cluster points:
+$d = {B^\perp}^T x$ for $x \in X$. The given projected points are used
+in (\ref{eq:ocs-point-entropy}) for determining the value of $S$.
+%
+For each of $N-M$ dimensions, the histogram with $N_k$ bins for orthogonally
+projected data points is constructed to determine probability, $p_{kj}$, of
+the points existence in the $N_j$ interval, for calculating (\ref{eq:ocs-point-entropy}),
+the value of entropy $S$ with the specified error value $\varepsilon$.
+}
+
+Using the above descriptions of model \eqref{eq:mdl-lmc-model} and
+data message \eqref{eq:mdl-lmc-data} length, the total length of
+the message for linear manifold cluster (LMC) is calculated as
+\begin{equation} \label{eq:mdl-lmc-final}
+L(\varepsilon) = P_m N(N+1)/2 + J(P_d M  + S(\varepsilon))
+\end{equation}
+
+From (\ref{eq:mdl-lmc-final}), we can see that two factors affect description
+length - the precision constants and the entropy.
+If simple models of the linear manifold cluster are favored then the entropy and
+the precision parameters should be proportionate. It would allow stable growth
+of the description length with respect to the size and the dimensionality of
+the linear manifold cluster.
+
+If we want to determine a optimal clustering parameters, it is important
+to use the encoding that does not calculate the data points in the clusters,
+but the distribution of the data points in each of the clusters.
+The difference is this: to characterize the data points in the cluster,
+the number of bits required will increase with the number of data points.
+However the characterization of the distribution does not depend on
+the particular number of points: it depends on representing the various
+parameters of each of the clusters so that from the representation a sample of
+data points can be generated that would be indistinguishable from
+the original sample. Or to say this another way, the clustering is
+to characterize the population from which the observed data has been sampled.
+
+We use model encoding schema as given in \eqref{eq:mdl-lmc-model}, as for data
+encoding is determined based on a the spread of the data on the manifold and
+as well in the orthogonal complement space.
+
+For an $M$-dimensional manifold, we can use the first $M$ eigenvalues as the
+variance of the spread on the manifold. Since this is from a principal
+components, the covariance matrix is diagonal. The distribution of the data on
+the manifold, then can be described as a Normal distribution with the mean
+being given by the translation vector and the covariance matrix being
+diagonal with the diagonal entries coming from the first $M$ eigenvalues
+of the principal components.
+
+For the orthogonal complement subspace, we assume a more general model that
+allows for a description that is accurate to within a user specified error.
+We model the distribution based on the quantization of orthogonal complement
+subspace $N-M$ dimensions. Each of these dimensions has an observed minimum
+value, a maximum value and number of quantized bins as determined by the entropy
+calculation and the user specified error. As well, each of the bins has
+a probability. To generate points in the orthogonal complement space,
+for each of its dimensions, we can choose a bin in accordance with the bin
+probabilities and within a bin choose a value uniformly distributed between
+the quantizing boundaries of the bin.
+
+The $M$ coordinates generated from the manifold and the $N-M$ coordinates chosen
+from the orthogonal complement space then can be used as coefficients of their
+respective basis vectors to produce a vector in the $N$-dimensional space.
+
+\IfClass{IEEEtran}{}{
+The number of parameters to specify an $M$ dimensional manifold data is then
+%
+\begin{eqnarray*}
+M + \sum_{m=M+1}^N Q_m+1+Q_m& =& M + (N - M) + 2\sum_{m=M+1}^N Q_m
+\end{eqnarray*}
+%
+where $Q_m$ is the number of quantized levels for orthogonal complement
+dimension $m$, the plus 1 is because to have $Q_m$ quantized levels there
+needs to be $Q_m+1$ boundaries and the second $Q_m$ is because each
+quantized level has to have a probability.
+}
+
+\begin{equation} \label{eq:mdl-lmc-data-pop}
+L(D|H) = P_d \left(N+2\sum_{m=M+1}^N Q_{m} \right)
+\end{equation}
+where $Q_m$ is the number of quantized levels for orthogonal complement
+dimension $m$.
+
+We can assume that because of the MDL in the clustering, regardless of
+the value of the input parameters that the user set, the clustering gives an
+appropriate characterization of the distribution of the population from which
+the observed data set was sampled. The best characterization of the population
+is the characterization that has fewest bits and calculated as
+
+\begin{equation} \label{eq:mdl-lmc-final-pop}
+L(\varepsilon) = P_m N(N+1)/2 + P_d \left(N+2\sum_{m=M+1}^N Q_{m}(\varepsilon) \right)
+\end{equation}
