@@ -98,9 +98,8 @@ appropriately reflect the MDL value of the the distribution of the data points
 in each of the clusters.
 
 \begin{figure}[ht]
-% \IfClass{IEEEtran}{\vspace*{-10pt}}{}
 \centering
-\includegraphics[scale=0.3]{img/toterrs2-mdl-oq.pdf}
+\includegraphics[scale=\IfClass{IEEEtran}{0.3}{0.5}]{img/toterrs2-mdl-oq.pdf}
 \IfClass{IEEEtran}{\vspace*{-10pt}}{}
 \caption{Clustering optimal quantization MDL value \eqref{eq:mdl-lmc-final} and its squared quantization error for $\varepsilon$ in interval $\left[0.001, 0.002, \dots, 0.01 \right]$ and various algorithms.}
 \label{fig:mdl-error}
@@ -118,9 +117,8 @@ of clusters and allows the filtering of subpar cluster candidates during
 the LMCLUS stochastic search, which improves the final clustering.
 
 \begin{figure}[ht]
-% \IfClass{IEEEtran}{\vspace*{-10pt}}{}
 \centering
-\includegraphics[scale=0.3]{img/toterrs2-mdl-si.pdf}
+\includegraphics[scale=\IfClass{IEEEtran}{0.3}{0.5}]{img/toterrs2-mdl-si.pdf}
 \IfClass{IEEEtran}{\vspace*{-10pt}}{}
 \caption{Clustering population MDL value \eqref{eq:mdl-lmc-final-pop} and its squared quantization error for $\varepsilon$ in interval $\left[0.001, 0.002, \dots, 0.01 \right]$ and various algorithms.}
 \label{fig:mdl-error-pop}
